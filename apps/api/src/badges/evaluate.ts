@@ -62,9 +62,7 @@ export async function evaluateBadgesAfterAnswer(opts: {
     if (b) unlocked.push(b);
   }
 
-  // topic-based: count correct attempts by topic-tagged questionIds (cheap approximation via stored questionId only)
-  // We don’t have topic stored in Attempt, so we use session streak/rating-driven heuristic later.
-  // For now: use questionId prefix buckets (future: store topic on Attempt).
+  // topic-based: count correct attempts by topic (stored on Attempt)
 
   // comeback: last 10 attempts, if at least 5 correct and contains a miss
   const last10 = await Attempt.find({ userId: opts.userId }).sort({ createdAt: -1 }).limit(10).lean();
@@ -94,21 +92,26 @@ export async function evaluateBadgesAfterAnswer(opts: {
     if (b) unlocked.push(b);
   }
 
-  // Topic skill badges (hooked/testing/a11y/ts) – placeholder now, unlock via stats.rating milestones
-  // (we’ll refine once Attempt stores topic)
-  if ((stats?.rating ?? 0) >= 15) {
+  const hookCorrect = await Attempt.countDocuments({ userId: opts.userId, correct: true, topic: { $in: ["hooks", "effects"] } });
+  if (hookCorrect >= 25) {
     const b = await ensureBadge(opts.userId, "hooked");
     if (b) unlocked.push(b);
   }
-  if ((stats?.rating ?? 0) >= 20) {
+
+  const testingCorrect = await Attempt.countDocuments({ userId: opts.userId, correct: true, topic: "testing" });
+  if (testingCorrect >= 20) {
     const b = await ensureBadge(opts.userId, "testing-aware");
     if (b) unlocked.push(b);
   }
-  if ((stats?.rating ?? 0) >= 25) {
+
+  const a11yCorrect = await Attempt.countDocuments({ userId: opts.userId, correct: true, topic: "accessibility" });
+  if (a11yCorrect >= 15) {
     const b = await ensureBadge(opts.userId, "a11y-ally");
     if (b) unlocked.push(b);
   }
-  if ((stats?.rating ?? 0) >= 30) {
+
+  const tsCorrect = await Attempt.countDocuments({ userId: opts.userId, correct: true, topic: "typescript" });
+  if (tsCorrect >= 15) {
     const b = await ensureBadge(opts.userId, "ts-tamer");
     if (b) unlocked.push(b);
   }

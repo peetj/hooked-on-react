@@ -124,6 +124,7 @@ sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
     sessionId: session._id,
     userId: auth.sub,
     questionId: q.id,
+    topic: q.topic,
     selected: selectedSorted,
     correct,
     timeTakenMs: serverTimeTakenMs
