@@ -3,6 +3,7 @@ import type { ServedQuestion, SubmitAnswerResponse, BadgeDef } from "@react-quiz
 import { Admin, Leaderboard, Social } from "./components/Panels";
 import { BadgeToast } from "./components/BadgeToast";
 import { BadgesPanel } from "./components/BadgesPanel";
+import { FeedbackPanel } from "./components/FeedbackPanel";
 
 type View = "welcome" | "login" | "register" | "dashboard" | "quiz" | "leaderboard" | "social" | "badges" | "admin";
 
@@ -191,6 +192,8 @@ export default function App() {
 
   return (
     <div className="min-h-full">
+      <FeedbackPanel user={auth.user} view={view} reduceMotion={reduceMotion} />
+
       {badgeQueue[0] && (
         <BadgeToast
           badge={badgeQueue[0]}
