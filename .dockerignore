@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.vite
+**/.turbo
+**/.cache
+.git
+.DS_Store
+apps/api/.env
+apps/web/.env
