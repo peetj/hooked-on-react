@@ -6,13 +6,47 @@ import { requireAuth, getAuth } from "../lib/auth.js";
 import { Session } from "../models/Session.js";
 import { Attempt } from "../models/Attempt.js";
 import { UserStats } from "../models/UserStats.js";
-import { ServedQuestion } from "../models/ServedQuestion.js";
+import { ServedQuestion, type ServedQuestionDoc } from "../models/ServedQuestion.js";
 import { makeNonce } from "../lib/nonce.js";
 import { QUESTION_BANK, getQuestionById } from "../questions/index.js";
 import { pickNextQuestion, updateRating, nextTimeLimitSec } from "../lib/adaptive.js";
 import { evaluateBadgesAfterAnswer } from "../badges/evaluate.js";
 
 export const sessionRouter = Router();
+
+function toServedPayload(servedDoc: Pick<ServedQuestionDoc, "sessionId" | "questionId" | "nonce">, timeLimitSec: number): ServedQuestionPayload | null {
+  const q = getQuestionById(servedDoc.questionId);
+  if (!q) return null;
+
+  return {
+    sessionId: servedDoc.sessionId.toString(),
+    question: {
+      id: q.id,
+      type: q.type,
+      topic: q.topic,
+      difficulty: q.difficulty,
+      weight: q.weight,
+      prompt: q.prompt,
+      options: q.options,
+      explanation: ""
+    },
+    timeLimitSec,
+    servedToken: servedDoc.nonce
+  };
+}
+
+async function findReusableServedQuestion(sessionId: string, userId: string, now: Date) {
+  return ServedQuestion.findOne({
+    sessionId,
+    userId,
+    usedAt: { $exists: false },
+    expiresAt: { $gt: now }
+  }).sort({ issuedAt: -1 });
+}
+
+function isDuplicateKeyError(error: unknown): error is { code: number } {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code: number }).code === 11000;
+}
 
 sessionRouter.post("/start", requireAuth, async (req, res) => {
   const auth = getAuth(req);
@@ -22,10 +56,31 @@ sessionRouter.post("/start", requireAuth, async (req, res) => {
 
 sessionRouter.get("/:sessionId/question", requireAuth, async (req, res) => {
   const auth = getAuth(req);
-  const sessionId = req.params.sessionId;
+  const sessionId = String(req.params.sessionId);
 
   const session = await Session.findOne({ _id: sessionId, userId: auth.sub });
   if (!session) return res.status(404).json({ error: "session_not_found" });
+
+  const now = new Date();
+  const reusable = await findReusableServedQuestion(sessionId, auth.sub, now);
+  if (reusable) {
+    const timeLimitSec = Math.max(1, Math.ceil((reusable.expiresAt.getTime() - now.getTime()) / 1000));
+    const payload = toServedPayload(reusable, timeLimitSec);
+    if (payload) return res.json(payload);
+
+    reusable.usedAt = now;
+    await reusable.save();
+  }
+
+  await ServedQuestion.updateMany(
+    {
+      sessionId,
+      userId: auth.sub,
+      usedAt: { $exists: false },
+      expiresAt: { $lte: now }
+    },
+    { $set: { usedAt: now } }
+  );
 
   const attempts = await Attempt.find({ sessionId: session._id }).select({ questionId: 1 });
   const seen = new Set(attempts.map((a) => a.questionId));
@@ -35,38 +90,45 @@ sessionRouter.get("/:sessionId/question", requireAuth, async (req, res) => {
 
   const nonce = makeNonce(16);
   const issuedAt = new Date();
-  const expiresAt = new Date(Date.now() + (timeLimitSec + 10) * 1000); // small grace
-  const servedDoc = await ServedQuestion.create({
-    sessionId: session._id,
-    userId: auth.sub,
-    questionId: q.id,
-    nonce,
-    issuedAt,
-    expiresAt
-  });
+  const expiresAt = new Date(issuedAt.getTime() + (timeLimitSec + 10) * 1000);
 
-  const served: ServedQuestionPayload = {
-    sessionId: session._id.toString(),
-    question: {
-      id: q.id,
-      type: q.type,
-      topic: q.topic,
-      difficulty: q.difficulty,
-      weight: q.weight,
-      prompt: q.prompt,
-      options: q.options,
-      explanation: "" // client receives explanation only after answering
-    },
-    timeLimitSec,
-    servedToken: servedDoc.nonce
-  };
+  try {
+    const servedDoc = await ServedQuestion.create({
+      sessionId: session._id,
+      userId: auth.sub,
+      questionId: q.id,
+      nonce,
+      issuedAt,
+      expiresAt
+    });
 
-  return res.json(served);
+    const served = toServedPayload(servedDoc, timeLimitSec);
+    if (!served) {
+      servedDoc.usedAt = new Date();
+      await servedDoc.save();
+      return res.status(500).json({ error: "question_not_found" });
+    }
+
+    return res.json(served);
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) throw error;
+
+    const activeServed = await findReusableServedQuestion(sessionId, auth.sub, new Date());
+    if (!activeServed) throw error;
+
+    const remainingSec = Math.max(1, Math.ceil((activeServed.expiresAt.getTime() - Date.now()) / 1000));
+    const payload = toServedPayload(activeServed, remainingSec);
+    if (payload) return res.json(payload);
+
+    activeServed.usedAt = new Date();
+    await activeServed.save();
+    return res.status(500).json({ error: "question_not_found" });
+  }
 });
 
 sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
   const auth = getAuth(req);
-  const sessionId = req.params.sessionId;
+  const sessionId = String(req.params.sessionId);
 
   const body = z
     .object({

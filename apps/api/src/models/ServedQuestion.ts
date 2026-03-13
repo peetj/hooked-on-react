@@ -13,6 +13,15 @@ const ServedQuestionSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
+// Only allow one active unanswered question per user session.
+ServedQuestionSchema.index(
+  { sessionId: 1, userId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { usedAt: { $exists: false } }
+  }
+);
+
 export type ServedQuestionDoc = InferSchemaType<typeof ServedQuestionSchema> & { _id: mongoose.Types.ObjectId };
 
 export const ServedQuestion =

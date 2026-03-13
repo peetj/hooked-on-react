@@ -22,6 +22,7 @@ This is **not productionized** yet — it runs the web+api in dev mode.
 # From repo root
 export JWT_SECRET='dev_change_me'
 export ADMIN_EMAIL='pete@nexgenstemschool.com.au'
+export ADMIN_BOOTSTRAP_KEY='dev_only_admin_key'
 
 docker compose up --build
 ```
@@ -74,3 +75,4 @@ pnpm -C apps/api run migrate:attempt-topics
 ## Notes
 - Question bank is stored as JSON and served from the API; user sessions and attempts live in MongoDB.
 - The adaptive logic is intentionally simple (ELO-ish). Improve it by tracking per-topic item response performance.
+- The first admin account now requires both `ADMIN_EMAIL` and `ADMIN_BOOTSTRAP_KEY` during registration; matching the email alone is not enough.
