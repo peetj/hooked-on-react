@@ -11,7 +11,8 @@ authRouter.post("/register", async (req, res) => {
     .object({
       email: z.string().email().toLowerCase(),
       password: z.string().min(8),
-      displayName: z.string().min(1).max(50)
+      displayName: z.string().min(1).max(50),
+      adminBootstrapKey: z.string().min(1).optional()
     })
     .safeParse(req.body);
 
@@ -22,7 +23,19 @@ authRouter.post("/register", async (req, res) => {
 
   const passwordHash = await bcrypt.hash(body.data.password, 12);
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
-  const role = adminEmail && body.data.email === adminEmail ? "admin" : "user";
+  const configuredBootstrapKey = process.env.ADMIN_BOOTSTRAP_KEY;
+  let role: "admin" | "user" = "user";
+
+  if (adminEmail && body.data.email === adminEmail) {
+    if (!configuredBootstrapKey || body.data.adminBootstrapKey !== configuredBootstrapKey) {
+      return res.status(403).json({ error: "admin_bootstrap_required" });
+    }
+
+    const adminExists = await User.exists({ role: "admin" });
+    if (adminExists) return res.status(409).json({ error: "admin_exists" });
+
+    role = "admin";
+  }
 
   const user = await User.create({ email: body.data.email, passwordHash, displayName: body.data.displayName, role });
 

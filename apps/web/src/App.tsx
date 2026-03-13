@@ -57,6 +57,10 @@ async function api<T>(path: string, opts: { token?: string | null; method?: stri
   return (await res.json()) as T;
 }
 
+function toErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Something went wrong";
+}
+
 export default function App() {
   const [view, setView] = useState<View>("welcome");
   const [auth, setAuthState, clearAuth] = useAuth();
@@ -73,6 +77,8 @@ export default function App() {
 
   const startedAtRef = useRef<number>(0);
   const [timeLeftMs, setTimeLeftMs] = useState<number>(0);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [isQuestionLoading, setIsQuestionLoading] = useState(false);
 
   const timeLimitMs = useMemo(() => (served ? served.timeLimitSec * 1000 : 0), [served]);
 
@@ -98,44 +104,70 @@ export default function App() {
 
   async function startSession() {
     if (!auth.token) throw new Error("Not logged in");
-    const r = await api<{ sessionId: string }>("/session/start", { token: auth.token, method: "POST" });
-    setSessionId(r.sessionId);
-    setView("quiz");
+    setRunError(null);
+    setFeedback(null);
+    setServed(null);
+    setSelected([]);
+
+    try {
+      const r = await api<{ sessionId: string }>("/session/start", { token: auth.token, method: "POST" });
+      setSessionId(r.sessionId);
+      setView("quiz");
+    } catch (error) {
+      setRunError(toErrorMessage(error));
+      throw error;
+    }
   }
 
-  async function loadNextQuestion() {
-    if (!auth.token || !sessionId) throw new Error("Missing session");
-    const q = await api<ServedQuestion>(`/session/${sessionId}/question`, { token: auth.token });
-    setServed(q);
+  async function loadNextQuestion(nextSessionId = sessionId) {
+    if (!auth.token || !nextSessionId) throw new Error("Missing session");
+    setIsQuestionLoading(true);
+    setRunError(null);
+
+    try {
+      const q = await api<ServedQuestion>(`/session/${nextSessionId}/question`, { token: auth.token });
+      setServed(q);
+    } catch (error) {
+      setRunError(toErrorMessage(error));
+      throw error;
+    } finally {
+      setIsQuestionLoading(false);
+    }
   }
 
   async function submitAnswer() {
     if (!auth.token || !sessionId || !served) return;
 
-    const timeTakenMs = Date.now() - startedAtRef.current;
-    const resp = await api<SubmitAnswerResponse>(`/session/${sessionId}/answer`, {
-      token: auth.token,
-      method: "POST",
-      body: { questionId: served.question.id, selected, servedToken: served.servedToken, clientTimeTakenMs: timeTakenMs }
-    });
-    setFeedback(resp);
+    setRunError(null);
 
-    if (!resp.correct) {
-      setShake(true);
-      window.setTimeout(() => setShake(false), 420);
-    }
+    try {
+      const timeTakenMs = Date.now() - startedAtRef.current;
+      const resp = await api<SubmitAnswerResponse>(`/session/${sessionId}/answer`, {
+        token: auth.token,
+        method: "POST",
+        body: { questionId: served.question.id, selected, servedToken: served.servedToken, clientTimeTakenMs: timeTakenMs }
+      });
+      setFeedback(resp);
 
-    // Level-up banner when crossing rating tiers
-    const prev = prevRatingRef.current;
-    prevRatingRef.current = resp.newRating;
-    const tier = (x: number) => (x < 0 ? -1 : x < 15 ? 0 : x < 30 ? 1 : 2);
-    if (tier(prev) < tier(resp.newRating)) {
-      setLevelUp({ from: prev, to: resp.newRating });
-      window.setTimeout(() => setLevelUp(null), 1800);
-    }
+      if (!resp.correct) {
+        setShake(true);
+        window.setTimeout(() => setShake(false), 420);
+      }
 
-    if (resp.unlockedBadges?.length) {
-      setBadgeQueue((q) => [...q, ...resp.unlockedBadges!]);
+      const prev = prevRatingRef.current;
+      prevRatingRef.current = resp.newRating;
+      const tier = (x: number) => (x < 0 ? -1 : x < 15 ? 0 : x < 30 ? 1 : 2);
+      if (tier(prev) < tier(resp.newRating)) {
+        setLevelUp({ from: prev, to: resp.newRating });
+        window.setTimeout(() => setLevelUp(null), 1800);
+      }
+
+      if (resp.unlockedBadges?.length) {
+        setBadgeQueue((q) => [...q, ...resp.unlockedBadges!]);
+      }
+    } catch (error) {
+      setRunError(toErrorMessage(error));
+      throw error;
     }
   }
 
@@ -143,9 +175,10 @@ export default function App() {
     if (view !== "quiz") return;
     if (!sessionId) return;
     if (served) return;
-    void loadNextQuestion();
+    if (isQuestionLoading || runError) return;
+    void loadNextQuestion(sessionId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, sessionId]);
+  }, [view, sessionId, served, isQuestionLoading, runError]);
 
   useEffect(() => {
     if (!served) return;
@@ -252,6 +285,7 @@ export default function App() {
                     setView("welcome");
                     setSessionId(null);
                     setServed(null);
+                    setRunError(null);
                   }}
                 >
                   Log out
@@ -310,10 +344,8 @@ export default function App() {
 
         {view === "dashboard" && auth.user && (
           <Dashboard
-            onStart={async () => {
-              await startSession();
-              await loadNextQuestion();
-            }}
+            error={runError}
+            onStart={startSession}
             onOpenLeaderboard={() => setView("leaderboard")}
             onOpenSocial={() => setView("social")}
           />
@@ -347,6 +379,39 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {runError && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
+                <div className="text-sm font-semibold text-rose-800">Quiz action failed</div>
+                <div className="mt-1 text-sm text-rose-700">{runError}</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    className="rounded-xl bg-rose-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-rose-600 disabled:opacity-50"
+                    disabled={!sessionId || isQuestionLoading}
+                    onClick={() => {
+                      setServed(null);
+                      setFeedback(null);
+                      setRunError(null);
+                      void loadNextQuestion(sessionId ?? undefined).catch(() => undefined);
+                    }}
+                  >
+                    Retry question
+                  </button>
+                  <button
+                    className="rounded-xl border border-rose-200 bg-white px-4 py-2 text-sm text-rose-700 hover:bg-rose-100"
+                    onClick={() => setView("dashboard")}
+                  >
+                    Back to dashboard
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isQuestionLoading && !served && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
+                Loading the next question...
+              </div>
+            )}
 
             {served && (
               <div
@@ -438,7 +503,12 @@ export default function App() {
                         className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-800"
                         onClick={async () => {
                           setServed(null);
-                          await loadNextQuestion();
+                          setFeedback(null);
+                          try {
+                            await loadNextQuestion(sessionId ?? undefined);
+                          } catch {
+                            // Error state is already surfaced in the quiz panel.
+                          }
                         }}
                       >
                         Next question
@@ -525,7 +595,7 @@ function Feature(props: { title: string; desc: string }) {
   );
 }
 
-function Dashboard(props: { onStart: () => Promise<void>; onOpenLeaderboard: () => void; onOpenSocial: () => void }) {
+function Dashboard(props: { error: string | null; onStart: () => Promise<void>; onOpenLeaderboard: () => void; onOpenSocial: () => void }) {
   const [busy, setBusy] = useState(false);
   return (
     <div className="grid gap-6">
@@ -554,6 +624,8 @@ function Dashboard(props: { onStart: () => Promise<void>; onOpenLeaderboard: () 
               setBusy(true);
               try {
                 await props.onStart();
+              } catch {
+                // Error state is already surfaced by the parent view.
               } finally {
                 setBusy(false);
               }
@@ -573,6 +645,8 @@ function Dashboard(props: { onStart: () => Promise<void>; onOpenLeaderboard: () 
           </button>
         </div>
 
+        {props.error && <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{props.error}</div>}
+
         <div className="mt-4 text-xs text-slate-500">Next: badges, daily run, and (maybe) live duels.</div>
       </div>
     </div>
@@ -587,6 +661,7 @@ function AuthCard(props: {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [adminBootstrapKey, setAdminBootstrapKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -606,6 +681,18 @@ function AuthCard(props: {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
+          </label>
+        )}
+        {props.mode === "register" && (
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-700">Admin bootstrap key</span>
+            <input
+              type="password"
+              className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-300"
+              value={adminBootstrapKey}
+              onChange={(e) => setAdminBootstrapKey(e.target.value)}
+            />
+            <span className="text-xs text-slate-500">Optional. Only needed when creating the first admin account.</span>
           </label>
         )}
         <label className="grid gap-1 text-sm">
@@ -638,7 +725,15 @@ function AuthCard(props: {
             setError(null);
             try {
               const path = props.mode === "login" ? "/auth/login" : "/auth/register";
-              const body = props.mode === "login" ? { email, password } : { email, password, displayName: displayName || "New Adventurer" };
+              const body =
+                props.mode === "login"
+                  ? { email, password }
+                  : {
+                      email,
+                      password,
+                      displayName: displayName || "New Adventurer",
+                      ...(adminBootstrapKey ? { adminBootstrapKey } : {})
+                    };
               const r = await api<{ token: string; user: { id: string; email: string; displayName: string; role?: "user" | "mod" | "admin" } }>(path, { method: "POST", body });
               props.onDone(r);
             } catch (e: unknown) {
