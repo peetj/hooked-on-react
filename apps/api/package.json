@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "generate:questions": "tsx src/questions/generate.ts",
+    "migrate:attempt-topics": "tsx src/scripts/backfill-attempt-topics.ts",
     "lint": "eslint .",
     "format": "prettier -w .",
     "test": "vitest"

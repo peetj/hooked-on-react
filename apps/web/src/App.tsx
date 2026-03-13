@@ -67,6 +67,9 @@ export default function App() {
   const [feedback, setFeedback] = useState<SubmitAnswerResponse | null>(null);
   const [badgeQueue, setBadgeQueue] = useState<BadgeDef[]>([]);
   const [reduceMotion, setReduceMotion] = useState<boolean>(() => localStorage.getItem("rq_reduce_motion") === "1");
+  const [shake, setShake] = useState(false);
+  const prevRatingRef = useRef<number>(0);
+  const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
 
   const startedAtRef = useRef<number>(0);
   const [timeLeftMs, setTimeLeftMs] = useState<number>(0);
@@ -116,6 +119,21 @@ export default function App() {
       body: { questionId: served.question.id, selected, servedToken: served.servedToken, clientTimeTakenMs: timeTakenMs }
     });
     setFeedback(resp);
+
+    if (!resp.correct) {
+      setShake(true);
+      window.setTimeout(() => setShake(false), 420);
+    }
+
+    // Level-up banner when crossing rating tiers
+    const prev = prevRatingRef.current;
+    prevRatingRef.current = resp.newRating;
+    const tier = (x: number) => (x < 0 ? -1 : x < 15 ? 0 : x < 30 ? 1 : 2);
+    if (tier(prev) < tier(resp.newRating)) {
+      setLevelUp({ from: prev, to: resp.newRating });
+      window.setTimeout(() => setLevelUp(null), 1800);
+    }
+
     if (resp.unlockedBadges?.length) {
       setBadgeQueue((q) => [...q, ...resp.unlockedBadges!]);
     }
@@ -147,6 +165,20 @@ export default function App() {
           onDone={() => setBadgeQueue((q) => q.slice(1))}
         />
       )}
+
+      {levelUp && (
+        <div className="pointer-events-none fixed inset-x-0 top-16 z-40 mx-auto flex max-w-xl justify-center px-4">
+          <div
+            className={cx(
+              "rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 shadow",
+              reduceMotion ? "" : "animate-[pop_400ms_ease-out]"
+            )}
+          >
+            Level up! Rating {levelUp.from.toFixed(1)} → {levelUp.to.toFixed(1)}
+          </div>
+        </div>
+      )}
+
       <header className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/70 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
@@ -317,7 +349,12 @@ export default function App() {
             </div>
 
             {served && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div
+                className={cx(
+                  "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm",
+                  shake && !reduceMotion ? "animate-[shake_380ms_ease-in-out]" : ""
+                )}
+              >
                 <div className="text-lg font-semibold">{served.question.prompt}</div>
                 <div className="mt-4 grid gap-2">
                   {served.question.options.map((opt, idx) => {

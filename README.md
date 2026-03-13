@@ -63,6 +63,14 @@ API: http://localhost:8787/health
 pnpm -C apps/api run generate:questions
 ```
 
+## Migrations
+
+### Backfill Attempt.topic
+If you have existing attempts from before topic-tracking:
+```bash
+pnpm -C apps/api run migrate:attempt-topics
+```
+
 ## Notes
 - Question bank is stored as JSON and served from the API; user sessions and attempts live in MongoDB.
 - The adaptive logic is intentionally simple (ELO-ish). Improve it by tracking per-topic item response performance.
