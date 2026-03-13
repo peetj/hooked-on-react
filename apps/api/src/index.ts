@@ -11,6 +11,7 @@ import { socialRouter } from "./routes/social.js";
 import { adminRouter } from "./routes/admin.js";
 import { leaderboardRouter } from "./routes/leaderboard.js";
 import { followRouter } from "./routes/follow.js";
+import { badgesRouter } from "./routes/badges.js";
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use("/social", socialRouter);
 app.use("/admin", adminRouter);
 app.use("/leaderboard", leaderboardRouter);
 app.use("/follow", followRouter);
+app.use("/badges", badgesRouter);
 
 const port = Number(process.env.PORT ?? 8787);
 

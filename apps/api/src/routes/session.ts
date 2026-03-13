@@ -10,6 +10,7 @@ import { ServedQuestion } from "../models/ServedQuestion.js";
 import { makeNonce } from "../lib/nonce.js";
 import { QUESTION_BANK, getQuestionById } from "../questions/index.js";
 import { pickNextQuestion, updateRating, nextTimeLimitSec } from "../lib/adaptive.js";
+import { evaluateBadgesAfterAnswer } from "../badges/evaluate.js";
 
 export const sessionRouter = Router();
 
@@ -139,6 +140,13 @@ sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
   stats.updatedAt = new Date();
   await stats.save();
 
+  const badgeResult = await evaluateBadgesAfterAnswer({
+    userId: auth.sub,
+    sessionId: session._id.toString(),
+    wasCorrect: correct,
+    newStreak: session.streak
+  });
+
   const resp: SubmitAnswerResponse = {
     correct,
     correctAnswer: q.answer,
@@ -146,7 +154,8 @@ sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
     ratingDelta: delta,
     newRating,
     newStreak: session.streak,
-    nextTimeLimitSec: nextTimeLimitSec({ rating: newRating, difficulty: q.difficulty })
+    nextTimeLimitSec: nextTimeLimitSec({ rating: newRating, difficulty: q.difficulty }),
+    unlockedBadges: badgeResult.unlockedDefs
   };
 
   return res.json(resp);

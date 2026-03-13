@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ServedQuestion, SubmitAnswerResponse } from "@react-quiz-1000/shared";
+import type { ServedQuestion, SubmitAnswerResponse, BadgeDef } from "@react-quiz-1000/shared";
 import { Admin, Leaderboard, Social } from "./components/Panels";
+import { BadgeToast } from "./components/BadgeToast";
+import { BadgesPanel } from "./components/BadgesPanel";
 
-type View = "welcome" | "login" | "register" | "dashboard" | "quiz" | "leaderboard" | "social" | "admin";
+type View = "welcome" | "login" | "register" | "dashboard" | "quiz" | "leaderboard" | "social" | "badges" | "admin";
 
 type AuthState = {
   token: string | null;
@@ -63,6 +65,8 @@ export default function App() {
   const [served, setServed] = useState<ServedQuestion | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<SubmitAnswerResponse | null>(null);
+  const [badgeQueue, setBadgeQueue] = useState<BadgeDef[]>([]);
+  const [reduceMotion, setReduceMotion] = useState<boolean>(() => localStorage.getItem("rq_reduce_motion") === "1");
 
   const startedAtRef = useRef<number>(0);
   const [timeLeftMs, setTimeLeftMs] = useState<number>(0);
@@ -112,6 +116,9 @@ export default function App() {
       body: { questionId: served.question.id, selected, servedToken: served.servedToken, clientTimeTakenMs: timeTakenMs }
     });
     setFeedback(resp);
+    if (resp.unlockedBadges?.length) {
+      setBadgeQueue((q) => [...q, ...resp.unlockedBadges!]);
+    }
   }
 
   useEffect(() => {
@@ -133,6 +140,13 @@ export default function App() {
 
   return (
     <div className="min-h-full">
+      {badgeQueue[0] && (
+        <BadgeToast
+          badge={badgeQueue[0]}
+          reduceMotion={reduceMotion}
+          onDone={() => setBadgeQueue((q) => q.slice(1))}
+        />
+      )}
       <header className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/70 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
@@ -173,6 +187,15 @@ export default function App() {
                     onClick={() => setView("social")}
                   >
                     Social
+                  </button>
+                  <button
+                    className={cx(
+                      "rounded-xl px-3 py-2 text-sm",
+                      view === "badges" ? "bg-slate-900 text-white" : "border border-slate-200 bg-white hover:bg-slate-50"
+                    )}
+                    onClick={() => setView("badges")}
+                  >
+                    Badges
                   </button>
                   {(auth.user.role === "mod" || auth.user.role === "admin") && (
                     <button
@@ -270,6 +293,10 @@ export default function App() {
 
         {view === "social" && (
           <Social token={auth.token} />
+        )}
+
+        {view === "badges" && (
+          <BadgesPanel token={auth.token} />
         )}
 
         {view === "admin" && (
@@ -398,8 +425,22 @@ export default function App() {
           </div>
         )}
 
-        <footer className="mt-12 text-center text-xs text-slate-500">
-          API: <span className="font-mono">{API_URL}</span>
+        <footer className="mt-12 flex flex-wrap items-center justify-center gap-3 text-center text-xs text-slate-500">
+          <span>
+            API: <span className="font-mono">{API_URL}</span>
+          </span>
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={reduceMotion}
+              onChange={(e) => {
+                const v = e.target.checked;
+                setReduceMotion(v);
+                localStorage.setItem("rq_reduce_motion", v ? "1" : "0");
+              }}
+            />
+            Reduce motion
+          </label>
         </footer>
       </main>
     </div>

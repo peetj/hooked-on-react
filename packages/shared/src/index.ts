@@ -66,6 +66,14 @@ export type SubmitAnswerRequest = {
   clientTimeTakenMs?: number; // optional, for UX analytics only
 };
 
+export type BadgeDef = {
+  id: string;
+  name: string;
+  desc: string;
+  emoji: string;
+  rarity: "common" | "rare" | "epic";
+};
+
 export type SubmitAnswerResponse = {
   correct: boolean;
   correctAnswer: number[];
@@ -74,4 +82,5 @@ export type SubmitAnswerResponse = {
   newRating: number;
   newStreak: number;
   nextTimeLimitSec: number;
+  unlockedBadges?: BadgeDef[];
 };
