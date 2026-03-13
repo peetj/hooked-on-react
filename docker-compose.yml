@@ -15,6 +15,10 @@ services:
       MONGODB_DB: reactquiz
       JWT_SECRET: ${JWT_SECRET:-dev_change_me}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-pete@nexgenstemschool.com.au}
+      ADMIN_BOOTSTRAP_KEY: ${ADMIN_BOOTSTRAP_KEY:-dev_only_admin_key}
+      FEEDBACK_EMAIL_ADDRESS: ${FEEDBACK_EMAIL_ADDRESS:-feedback@example.com}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-Hooked on React <no-reply@example.com>}
       PORT: 8787
       CORS_ORIGIN: http://localhost:5173
     ports:
