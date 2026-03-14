@@ -1,4 +1,5 @@
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
+export type QuizStream = "adaptive" | "1" | "2" | "3" | "4" | "5";
 
 export type QuestionType = "mcq" | "multi" | "truefalse";
 
@@ -45,16 +46,23 @@ export type SessionState = {
   sessionId: string;
   userId: string;
   createdAt: string;
+  stream: QuizStream;
   rating: number; // adaptive rating, starts at 0
   streak: number;
   totalAnswered: number;
+  correctCount: number;
+  wrongCount: number;
   topicMastery: Record<Topic, number>; // -3..+3
 };
 
 export type ServedQuestion = {
   sessionId: string;
+  stream: QuizStream;
   question: Omit<Question, "answer">;
   timeLimitSec: number;
+  correctCount: number;
+  wrongCount: number;
+  streak: number;
   servedToken: string; // one-time token to prevent replay/cheating
 };
 
@@ -74,13 +82,21 @@ export type BadgeDef = {
   rarity: "common" | "rare" | "epic";
 };
 
+export type ResourceLink = {
+  label: string;
+  url: string;
+};
+
 export type SubmitAnswerResponse = {
   correct: boolean;
   correctAnswer: number[];
   explanation: string;
+  resources?: ResourceLink[];
   ratingDelta: number;
   newRating: number;
   newStreak: number;
+  correctCount: number;
+  wrongCount: number;
   nextTimeLimitSec: number;
   unlockedBadges?: BadgeDef[];
 };

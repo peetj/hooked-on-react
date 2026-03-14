@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
+import type { QuizStream } from "@react-quiz-1000/shared";
 import { ENCOURAGEMENT_TEMPLATES } from "../lib/social";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
@@ -29,6 +30,23 @@ type LeaderboardRow = {
   avgTimeMs: number;
 };
 
+function getStreamLabel(stream: QuizStream) {
+  switch (stream) {
+    case "1":
+      return "Tier 1";
+    case "2":
+      return "Tier 2";
+    case "3":
+      return "Tier 3";
+    case "4":
+      return "Tier 4";
+    case "5":
+      return "Tier 5";
+    default:
+      return "Adaptive";
+  }
+}
+
 type FeedItem = {
   id: string;
   template: string;
@@ -52,7 +70,7 @@ function cx(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-export function Leaderboard(props: { token: string | null }) {
+export function Leaderboard(props: { token: string | null; selectedStream: QuizStream; onSelectStream: (next: QuizStream) => void }) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [template, setTemplate] = useState<(typeof ENCOURAGEMENT_TEMPLATES)[number]>(ENCOURAGEMENT_TEMPLATES[0]);
@@ -72,13 +90,13 @@ export function Leaderboard(props: { token: string | null }) {
   }
 
   useEffect(() => {
-    void api<{ rows: LeaderboardRow[] }>(`/leaderboard?limit=50&minAnswered=1`, { token: props.token })
+    void api<{ rows: LeaderboardRow[] }>(`/leaderboard?limit=50&minAnswered=1&stream=${props.selectedStream}`, { token: props.token })
       .then((r) => setRows(r.rows))
       .catch((e: unknown) => setErr(e instanceof Error ? e.message : "failed to load"));
 
     void refreshFollowState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.token]);
+  }, [props.token, props.selectedStream]);
 
   async function encourage(toUserId: string, lane: "followers" | "anyone") {
     if (!props.token) return;
@@ -124,23 +142,42 @@ export function Leaderboard(props: { token: string | null }) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-slate-500">Leaderboard</div>
-          <div className="text-2xl font-bold text-slate-900">Hooked on React — ladder</div>
+          <div className="text-2xl font-bold text-slate-900">{getStreamLabel(props.selectedStream)} ladder</div>
+          <div className="mt-1 text-sm text-slate-600">Each stream keeps its own race, so fixed tiers stay fair.</div>
         </div>
 
-        <label className="grid gap-1 text-sm">
-          <span className="text-slate-600">Encouragement template</span>
-          <select
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
-            value={template}
-            onChange={(e) => setTemplate(e.target.value as (typeof ENCOURAGEMENT_TEMPLATES)[number])}
-          >
-            {ENCOURAGEMENT_TEMPLATES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex flex-wrap gap-3">
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-600">Leaderboard stream</span>
+            <select
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+              value={props.selectedStream}
+              onChange={(e) => props.onSelectStream(e.target.value as QuizStream)}
+            >
+              <option value="adaptive">Adaptive</option>
+              <option value="1">Tier 1</option>
+              <option value="2">Tier 2</option>
+              <option value="3">Tier 3</option>
+              <option value="4">Tier 4</option>
+              <option value="5">Tier 5</option>
+            </select>
+          </label>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-slate-600">Encouragement template</span>
+            <select
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+              value={template}
+              onChange={(e) => setTemplate(e.target.value as (typeof ENCOURAGEMENT_TEMPLATES)[number])}
+            >
+              {ENCOURAGEMENT_TEMPLATES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {err && <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
@@ -173,7 +210,7 @@ export function Leaderboard(props: { token: string | null }) {
                   {mutual.has(r.userId) ? (
                     <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Friends</span>
                   ) : (
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">—</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">-</span>
                   )}
                 </td>
                 <td className="py-2 pr-4">
@@ -243,7 +280,7 @@ export function Social(props: { token: string | null }) {
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="text-sm font-semibold text-slate-500">Social</div>
       <div className="text-2xl font-bold text-slate-900">Encouragement inbox</div>
-      <div className="mt-1 text-sm text-slate-600">No comments, no negativity — only preset encouragements.</div>
+      <div className="mt-1 text-sm text-slate-600">No comments, no negativity - only preset encouragements.</div>
 
       {err && <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
 
@@ -254,7 +291,7 @@ export function Social(props: { token: string | null }) {
             <div>
               <div className="text-sm font-semibold text-slate-900">{x.template}</div>
               <div className="text-xs text-slate-500">
-                from <span className="font-medium">{x.from.displayName}</span> • {x.lane}
+                from <span className="font-medium">{x.from.displayName}</span> - {x.lane}
               </div>
             </div>
             <div className="text-xs text-slate-400">{new Date(x.createdAt).toLocaleString()}</div>
@@ -397,3 +434,4 @@ export function Admin(props: { token: string | null }) {
     </div>
   );
 }
+

@@ -1,15 +1,16 @@
-import type { Question, Topic } from "@react-quiz-1000/shared";
+import type { Question, Topic, QuizStream } from "@react-quiz-1000/shared";
 import { clampDifficulty, topicList } from "../questions/index.js";
 
 export function pickNextQuestion(opts: {
   bank: Question[];
   rating: number;
+  stream: QuizStream;
   topicMastery: Record<string, number>;
   seenIds: Set<string>;
 }): Question {
   const topics = topicList();
 
-  const targetDifficulty = clampDifficulty(3 + opts.rating / 25);
+  const targetDifficulty = opts.stream === "adaptive" ? clampDifficulty(3 + opts.rating / 25) : clampDifficulty(Number(opts.stream));
 
   // Topic need: lower mastery => higher need
   const topicNeed: Record<Topic, number> = Object.fromEntries(
@@ -20,10 +21,13 @@ export function pickNextQuestion(opts: {
     })
   ) as any;
 
-  const candidates = opts.bank.filter((q) => !opts.seenIds.has(q.id));
+  const difficultyCandidates =
+    opts.stream === "adaptive" ? opts.bank : opts.bank.filter((q) => q.difficulty === Number(opts.stream));
+  const candidates = difficultyCandidates.filter((q) => !opts.seenIds.has(q.id));
   if (candidates.length === 0) {
     // If we've seen everything, allow repeats but prefer hardest missed topics.
-    return opts.bank[Math.floor(Math.random() * opts.bank.length)]!;
+    const fallbackPool = difficultyCandidates.length > 0 ? difficultyCandidates : opts.bank;
+    return fallbackPool[Math.floor(Math.random() * fallbackPool.length)]!;
   }
 
   // Score questions by closeness to target difficulty, topic need, and intrinsic weight.
