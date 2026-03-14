@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import type { QuizStream, ServedQuestion as ServedQuestionPayload, SubmitAnswerResponse } from "@react-quiz-1000/shared";
+import type { QuizStream, SessionMode, ServedQuestion as ServedQuestionPayload, SubmitAnswerResponse } from "@react-quiz-1000/shared";
 
 import { requireAuth, getAuth } from "../lib/auth.js";
 import { Session } from "../models/Session.js";
@@ -9,13 +9,14 @@ import { UserStats } from "../models/UserStats.js";
 import { ServedQuestion, type ServedQuestionDoc } from "../models/ServedQuestion.js";
 import { makeNonce } from "../lib/nonce.js";
 import { QUESTION_BANK, getQuestionById } from "../questions/index.js";
-import { buildExplanation, getQuestionResources } from "../questions/resources.js";
+import { buildExplanation, getQuestionPlayground, getQuestionResources } from "../questions/resources.js";
 import { pickNextQuestion, updateRating, nextTimeLimitSec } from "../lib/adaptive.js";
 import { evaluateBadgesAfterAnswer } from "../badges/evaluate.js";
 
 export const sessionRouter = Router();
 
 const quizStreamSchema = z.enum(["adaptive", "1", "2", "3", "4", "5"]);
+const sessionModeSchema = z.enum(["ranked", "practice"]);
 
 type StreamStats = {
   rating: number;
@@ -25,6 +26,10 @@ type StreamStats = {
   avgTimeMs: number;
   updatedAt: Date;
 };
+
+function getSessionMode(session: { mode?: unknown }): SessionMode {
+  return session.mode === "practice" ? "practice" : "ranked";
+}
 
 function ensureStreamStats(stats: any, stream: QuizStream): StreamStats {
   if (!stats.streams) stats.streams = {};
@@ -45,6 +50,7 @@ function toServedPayload(opts: {
   session: {
     _id: { toString(): string };
     stream: QuizStream;
+    mode: SessionMode;
     correctCount: number;
     wrongCount: number;
     streak: number;
@@ -58,6 +64,7 @@ function toServedPayload(opts: {
   return {
     sessionId: opts.session._id.toString(),
     stream: opts.session.stream,
+    mode: getSessionMode(opts.session),
     question: {
       id: q.id,
       type: q.type,
@@ -106,14 +113,18 @@ async function findActiveSession(userId: string) {
     return null;
   }
 
+  const mode = getSessionMode(session);
   const remainingTimeSec =
-    served.pausedAt && served.remainingTimeSec
-      ? served.remainingTimeSec
-      : Math.max(1, Math.ceil((served.expiresAt.getTime() - now.getTime()) / 1000));
+    mode === "practice"
+      ? 0
+      : served.pausedAt && served.remainingTimeSec
+        ? served.remainingTimeSec
+        : Math.max(1, Math.ceil((served.expiresAt.getTime() - now.getTime()) / 1000));
 
   return {
     sessionId: session._id.toString(),
     stream: session.stream as QuizStream,
+    mode,
     paused: Boolean(served.pausedAt),
     remainingTimeSec,
     correctCount: session.correctCount,
@@ -130,11 +141,11 @@ sessionRouter.get("/active", requireAuth, async (req, res) => {
 
 sessionRouter.post("/start", requireAuth, async (req, res) => {
   const auth = getAuth(req);
-  const body = z.object({ stream: quizStreamSchema.optional() }).safeParse(req.body ?? {});
+  const body = z.object({ stream: quizStreamSchema.optional(), mode: sessionModeSchema.optional() }).safeParse(req.body ?? {});
   if (!body.success) return res.status(400).json({ error: "invalid_body" });
 
-  const session = await Session.create({ userId: auth.sub, stream: body.data.stream ?? "adaptive" });
-  return res.json({ sessionId: session._id.toString(), stream: session.stream });
+  const session = await Session.create({ userId: auth.sub, stream: body.data.stream ?? "adaptive", mode: body.data.mode ?? "ranked" });
+  return res.json({ sessionId: session._id.toString(), stream: session.stream, mode: session.mode });
 });
 
 sessionRouter.post("/:sessionId/pause", requireAuth, async (req, res) => {
@@ -150,14 +161,15 @@ sessionRouter.post("/:sessionId/pause", requireAuth, async (req, res) => {
   }).sort({ issuedAt: -1 });
 
   if (!served) return res.status(404).json({ error: "active_question_not_found" });
+  const mode = getSessionMode(session);
   if (served.pausedAt) {
     return res.json({
       ok: true,
-      remainingTimeSec: served.remainingTimeSec ?? 1
+      remainingTimeSec: mode === "practice" ? 0 : served.remainingTimeSec ?? 1
     });
   }
 
-  const remainingTimeSec = Math.max(1, Math.ceil((served.expiresAt.getTime() - Date.now()) / 1000));
+  const remainingTimeSec = mode === "practice" ? 0 : Math.max(1, Math.ceil((served.expiresAt.getTime() - Date.now()) / 1000));
   served.pausedAt = new Date();
   served.remainingTimeSec = remainingTimeSec;
   await served.save();
@@ -180,10 +192,14 @@ sessionRouter.post("/:sessionId/resume", requireAuth, async (req, res) => {
 
   if (!served) return res.status(404).json({ error: "paused_question_not_found" });
 
-  const remainingTimeSec = Math.max(1, served.remainingTimeSec ?? nextTimeLimitSec({ rating: session.rating, difficulty: getQuestionById(served.questionId)?.difficulty ?? 3 }));
+  const mode = getSessionMode(session);
+  const remainingTimeSec =
+    mode === "practice"
+      ? 0
+      : Math.max(1, served.remainingTimeSec ?? nextTimeLimitSec({ rating: session.rating, difficulty: getQuestionById(served.questionId)?.difficulty ?? 3 }));
   const now = new Date();
   served.issuedAt = now;
-  served.expiresAt = new Date(now.getTime() + (remainingTimeSec + 10) * 1000);
+  served.expiresAt = mode === "practice" ? new Date(now.getTime() + 24 * 60 * 60 * 1000) : new Date(now.getTime() + (remainingTimeSec + 10) * 1000);
   served.pausedAt = undefined;
   served.remainingTimeSec = remainingTimeSec;
   await served.save();
@@ -199,12 +215,15 @@ sessionRouter.get("/:sessionId/question", requireAuth, async (req, res) => {
   if (!session) return res.status(404).json({ error: "session_not_found" });
 
   const now = new Date();
+  const mode = getSessionMode(session);
   const reusable = await findReusableServedQuestion(sessionId, auth.sub, now);
   if (reusable) {
     const timeLimitSec =
-      reusable.pausedAt && reusable.remainingTimeSec
-        ? reusable.remainingTimeSec
-        : Math.max(1, Math.ceil((reusable.expiresAt.getTime() - now.getTime()) / 1000));
+      mode === "practice"
+        ? 0
+        : reusable.pausedAt && reusable.remainingTimeSec
+          ? reusable.remainingTimeSec
+          : Math.max(1, Math.ceil((reusable.expiresAt.getTime() - now.getTime()) / 1000));
     const payload = toServedPayload({ session, servedDoc: reusable, timeLimitSec });
     if (payload) return res.json(payload);
 
@@ -233,11 +252,11 @@ sessionRouter.get("/:sessionId/question", requireAuth, async (req, res) => {
     topicMastery: session.topicMastery,
     seenIds: seen
   });
-  const timeLimitSec = nextTimeLimitSec({ rating: session.rating, difficulty: q.difficulty });
+  const timeLimitSec = mode === "practice" ? 0 : nextTimeLimitSec({ rating: session.rating, difficulty: q.difficulty });
 
   const nonce = makeNonce(16);
   const issuedAt = new Date();
-  const expiresAt = new Date(issuedAt.getTime() + (timeLimitSec + 10) * 1000);
+  const expiresAt = mode === "practice" ? new Date(issuedAt.getTime() + 24 * 60 * 60 * 1000) : new Date(issuedAt.getTime() + (timeLimitSec + 10) * 1000);
 
   try {
     const servedDoc = await ServedQuestion.create({
@@ -265,9 +284,11 @@ sessionRouter.get("/:sessionId/question", requireAuth, async (req, res) => {
     if (!activeServed) throw error;
 
     const remainingSec =
-      activeServed.pausedAt && activeServed.remainingTimeSec
-        ? activeServed.remainingTimeSec
-        : Math.max(1, Math.ceil((activeServed.expiresAt.getTime() - Date.now()) / 1000));
+      mode === "practice"
+        ? 0
+        : activeServed.pausedAt && activeServed.remainingTimeSec
+          ? activeServed.remainingTimeSec
+          : Math.max(1, Math.ceil((activeServed.expiresAt.getTime() - Date.now()) / 1000));
     const payload = toServedPayload({ session, servedDoc: activeServed, timeLimitSec: remainingSec });
     if (payload) return res.json(payload);
 
@@ -306,8 +327,9 @@ sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
   });
   if (!served) return res.status(400).json({ error: "invalid_served_token" });
   if (served.usedAt) return res.status(400).json({ error: "served_token_used" });
+  const mode = getSessionMode(session);
   if (served.pausedAt) return res.status(409).json({ error: "question_paused" });
-  if (served.expiresAt < new Date()) return res.status(400).json({ error: "served_token_expired" });
+  if (mode !== "practice" && served.expiresAt < new Date()) return res.status(400).json({ error: "served_token_expired" });
   served.usedAt = new Date();
   await served.save();
 
@@ -317,7 +339,7 @@ sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
   const answerSorted = [...q.answer].sort((a, b) => a - b);
   const correct = selectedSorted.length === answerSorted.length && selectedSorted.every((v, i) => v === answerSorted[i]);
 
-  const timeLimitSec = nextTimeLimitSec({ rating: session.rating, difficulty: q.difficulty });
+  const timeLimitSec = mode === "practice" ? 0 : nextTimeLimitSec({ rating: session.rating, difficulty: q.difficulty });
   const { delta, newRating } = updateRating({
     rating: session.rating,
     correct,
@@ -345,43 +367,48 @@ sessionRouter.post("/:sessionId/answer", requireAuth, async (req, res) => {
     timeTakenMs: serverTimeTakenMs
   });
 
-  const stats = (await UserStats.findOne({ userId: auth.sub })) ?? (await UserStats.create({ userId: auth.sub }));
-  const totalPrev = stats.totalAnswered;
-  stats.totalAnswered = totalPrev + 1;
-  stats.totalCorrect = stats.totalCorrect + (correct ? 1 : 0);
-  stats.rating = newRating;
-  stats.bestStreak = Math.max(stats.bestStreak, session.streak);
-  stats.avgTimeMs = Math.round((stats.avgTimeMs * totalPrev + serverTimeTakenMs) / (totalPrev + 1));
-  stats.updatedAt = new Date();
+  let badgeResult = { unlockedDefs: [] as NonNullable<SubmitAnswerResponse["unlockedBadges"]> };
+  if (mode === "ranked") {
+    const stats = (await UserStats.findOne({ userId: auth.sub })) ?? (await UserStats.create({ userId: auth.sub }));
+    const totalPrev = stats.totalAnswered;
+    stats.totalAnswered = totalPrev + 1;
+    stats.totalCorrect = stats.totalCorrect + (correct ? 1 : 0);
+    stats.rating = newRating;
+    stats.bestStreak = Math.max(stats.bestStreak, session.streak);
+    stats.avgTimeMs = Math.round((stats.avgTimeMs * totalPrev + serverTimeTakenMs) / (totalPrev + 1));
+    stats.updatedAt = new Date();
 
-  const streamStats = ensureStreamStats(stats, session.stream as QuizStream);
-  const streamPrev = streamStats.totalAnswered;
-  streamStats.totalAnswered += 1;
-  streamStats.totalCorrect += correct ? 1 : 0;
-  streamStats.rating = newRating;
-  streamStats.bestStreak = Math.max(streamStats.bestStreak, session.streak);
-  streamStats.avgTimeMs = Math.round((streamStats.avgTimeMs * streamPrev + serverTimeTakenMs) / (streamPrev + 1));
-  streamStats.updatedAt = new Date();
-  await stats.save();
+    const streamStats = ensureStreamStats(stats, session.stream as QuizStream);
+    const streamPrev = streamStats.totalAnswered;
+    streamStats.totalAnswered += 1;
+    streamStats.totalCorrect += correct ? 1 : 0;
+    streamStats.rating = newRating;
+    streamStats.bestStreak = Math.max(streamStats.bestStreak, session.streak);
+    streamStats.avgTimeMs = Math.round((streamStats.avgTimeMs * streamPrev + serverTimeTakenMs) / (streamPrev + 1));
+    streamStats.updatedAt = new Date();
+    await stats.save();
 
-  const badgeResult = await evaluateBadgesAfterAnswer({
-    userId: auth.sub,
-    sessionId: session._id.toString(),
-    wasCorrect: correct,
-    newStreak: session.streak
-  });
+    badgeResult = await evaluateBadgesAfterAnswer({
+      userId: auth.sub,
+      sessionId: session._id.toString(),
+      wasCorrect: correct,
+      newStreak: session.streak
+    });
+  }
 
   const resp: SubmitAnswerResponse = {
+    mode,
     correct,
     correctAnswer: q.answer,
     explanation: buildExplanation(q),
     resources: getQuestionResources(q),
+    playground: mode === "practice" ? getQuestionPlayground(q) : undefined,
     ratingDelta: delta,
     newRating,
     newStreak: session.streak,
     correctCount: session.correctCount,
     wrongCount: session.wrongCount,
-    nextTimeLimitSec: nextTimeLimitSec({ rating: newRating, difficulty: q.difficulty }),
+    nextTimeLimitSec: mode === "practice" ? 0 : nextTimeLimitSec({ rating: newRating, difficulty: q.difficulty }),
     unlockedBadges: badgeResult.unlockedDefs
   };
 

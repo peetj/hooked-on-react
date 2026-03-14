@@ -1,5 +1,6 @@
 export type Difficulty = 1 | 2 | 3 | 4 | 5;
 export type QuizStream = "adaptive" | "1" | "2" | "3" | "4" | "5";
+export type SessionMode = "ranked" | "practice";
 
 export type QuestionType = "mcq" | "multi" | "truefalse";
 
@@ -47,6 +48,7 @@ export type SessionState = {
   userId: string;
   createdAt: string;
   stream: QuizStream;
+  mode: SessionMode;
   rating: number; // adaptive rating, starts at 0
   streak: number;
   totalAnswered: number;
@@ -58,6 +60,7 @@ export type SessionState = {
 export type ServedQuestion = {
   sessionId: string;
   stream: QuizStream;
+  mode: SessionMode;
   question: Omit<Question, "answer">;
   timeLimitSec: number;
   correctCount: number;
@@ -87,11 +90,19 @@ export type ResourceLink = {
   url: string;
 };
 
+export type PlaygroundExample = {
+  title: string;
+  description: string;
+  code: string;
+};
+
 export type SubmitAnswerResponse = {
+  mode: SessionMode;
   correct: boolean;
   correctAnswer: number[];
   explanation: string;
   resources?: ResourceLink[];
+  playground?: PlaygroundExample;
   ratingDelta: number;
   newRating: number;
   newStreak: number;
