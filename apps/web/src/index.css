@@ -2621,6 +2621,44 @@ body::after {
   backdrop-filter: blur(14px);
 }
 
+.quest-auth-card {
+  background: var(--surface);
+  backdrop-filter: blur(14px);
+}
+
+.quest-input {
+  background: var(--surface-alt);
+  color: var(--text-main);
+  border: 1px solid var(--line);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.quest-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.quest-input::placeholder {
+  color: var(--text-faint);
+}
+
+.quest-btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  transition: filter 0.15s;
+}
+.quest-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.quest-btn-secondary {
+  background: var(--surface-alt);
+  color: var(--text-main);
+  border: 1px solid var(--line);
+  transition: background 0.15s;
+}
+.quest-btn-secondary:hover {
+  background: var(--button-dark-hover);
+}
+
 @keyframes questFloat {
   0%,
   100% {
