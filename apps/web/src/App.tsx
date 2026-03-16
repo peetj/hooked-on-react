@@ -66,6 +66,10 @@ function useTheme(): [ThemeName, (next: ThemeName) => void] {
     return raw === "ember" || raw === "nova" || raw === "sunset" || raw === "circuit" || raw === "midnight" ? raw : "midnight";
   });
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
   const set = (next: ThemeName) => {
     setTheme(next);
     localStorage.setItem("rq_theme", next);
