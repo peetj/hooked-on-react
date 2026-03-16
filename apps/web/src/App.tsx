@@ -6,6 +6,7 @@ import { BadgeToast } from "./components/BadgeToast";
 import { BadgesPanel } from "./components/BadgesPanel";
 import { FeedbackPanel } from "./components/FeedbackPanel";
 import { ReactQuestArenaDashboard } from "./components/ReactQuestArenaDashboard";
+import { api, cx, API_URL } from "./lib/api";
 
 type View = "welcome" | "login" | "register" | "dashboard" | "quiz" | "leaderboard" | "social" | "badges" | "admin" | "account";
 type AccountSection = "profile" | "account" | "security" | "preferences";
@@ -30,11 +31,6 @@ type ActiveRun = {
 
 type TimerTone = "safe" | "warn" | "danger" | "critical";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
-
-function cx(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
 
 function useAuth(): [AuthState, (next: AuthState) => void, () => void] {
   const [auth, setAuth] = useState<AuthState>(() => {
@@ -100,22 +96,6 @@ function useSessionMode(): [SessionMode, (next: SessionMode) => void] {
   };
 
   return [mode, set];
-}
-
-async function api<T>(path: string, opts: { token?: string | null; method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: opts.method ?? (opts.body ? "POST" : "GET"),
-    headers: {
-      "content-type": "application/json",
-      ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {})
-    },
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return (await res.json()) as T;
 }
 
 function toErrorMessage(error: unknown) {
