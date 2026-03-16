@@ -1,12 +1,13 @@
 import { useState } from "react";
 import type { QuizStream, SessionMode } from "@react-quiz-1000/shared";
 import { cx } from "../lib/api";
-import type { ThemeName, ActiveRun } from "../lib/types";
+import type { ThemeName, ActiveRun, ArenaEffectsSettings } from "../lib/types";
 import { getModeLabel, getModeDescription, getStreamLabel, getStreamDescription } from "../lib/helpers";
 import { ReactQuestArenaDashboard } from "./ReactQuestArenaDashboard";
 
 export function Dashboard(props: {
   theme: ThemeName;
+  effects: ArenaEffectsSettings;
   error: string | null;
   selectedStream: QuizStream;
   sessionMode: SessionMode;
@@ -30,6 +31,7 @@ export function Dashboard(props: {
     <div className={cx("arena-dashboard-stage", `arena-dashboard-stage-${props.theme}`)}>
       <ReactQuestArenaDashboard
         theme={props.theme}
+        effects={props.effects}
         selectedStream={props.selectedStream}
         sessionMode={props.sessionMode}
         busy={busy}

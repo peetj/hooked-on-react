@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cx, API_URL } from "../lib/api";
 
 type AuthUser = {
@@ -9,6 +9,7 @@ type AuthUser = {
 } | null;
 
 export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotion: boolean }) {
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [contactEmail, setContactEmail] = useState(props.user?.email ?? "");
   const [name, setName] = useState(props.user?.displayName ?? "");
@@ -25,8 +26,15 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
   useEffect(() => {
     if (!isOpen) return;
 
+    function closePanel() {
+      setIsOpen(false);
+      window.setTimeout(() => {
+        toggleRef.current?.blur();
+      }, 0);
+    }
+
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsOpen(false);
+      if (event.key === "Escape") closePanel();
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -76,6 +84,7 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
   return (
     <>
       <button
+        ref={toggleRef}
         type="button"
         aria-expanded={isOpen}
         aria-controls="feedback-panel"
@@ -93,7 +102,10 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
           type="button"
           aria-label="Close feedback panel"
           className="feedback-backdrop"
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false);
+            toggleRef.current?.blur();
+          }}
         />
       )}
 
@@ -115,7 +127,10 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
             <button
               type="button"
               className="feedback-close"
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                toggleRef.current?.blur();
+              }}
             >
               Close
             </button>

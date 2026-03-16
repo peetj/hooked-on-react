@@ -991,7 +991,7 @@ body::after {
   position: fixed;
   right: 0;
   top: 50%;
-  z-index: 40;
+  z-index: 60;
   transform: translateY(-50%);
   border: 1px solid rgba(240, 165, 0, 0.42);
   border-right: none;
@@ -1014,8 +1014,16 @@ body::after {
   transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
 }
 
-.feedback-toggle-animated:hover,
-.feedback-toggle-animated:focus-visible {
+.feedback-toggle:hover {
+  outline: none;
+}
+
+.feedback-toggle:focus,
+.feedback-toggle:focus-visible {
+  outline: none;
+}
+
+.feedback-toggle-animated:hover {
   transform: translate(-0.18rem, -50%);
   filter: brightness(1.04);
 }
@@ -1028,7 +1036,7 @@ body::after {
 .feedback-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  z-index: 55;
   background: rgba(7, 4, 16, 0.5);
   backdrop-filter: blur(2px);
   border: none;
@@ -1038,7 +1046,7 @@ body::after {
   position: fixed;
   right: 0;
   top: 0;
-  z-index: 40;
+  z-index: 60;
   display: flex;
   flex-direction: column;
   width: min(100%, 28rem);
@@ -1222,14 +1230,120 @@ body::after {
   cursor: not-allowed;
 }
 
+.account-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.account-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(6, 4, 14, 0.74);
+  backdrop-filter: blur(14px);
+}
+
+.account-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, 100%);
+  max-height: min(88vh, 920px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.08) 78%);
+  border-radius: 1.8rem;
+  background:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, rgba(7, 5, 14, 0.98) 8%), rgba(6, 4, 14, 0.98));
+  box-shadow:
+    0 32px 70px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 34px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.account-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem 1.4rem 1.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line) 82%);
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--accent-hover) 10%, transparent), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+}
+
+.account-dialog-kicker {
+  color: color-mix(in srgb, var(--accent-hover) 70%, #fff1db 30%);
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.account-dialog-title {
+  margin-top: 0.35rem;
+  color: var(--text-strong);
+  font-size: clamp(1.7rem, 3.6vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.account-dialog-copy {
+  margin-top: 0.45rem;
+  max-width: 42rem;
+  color: var(--text-muted);
+  font-size: 0.96rem;
+  line-height: 1.6;
+}
+
+.account-dialog-close {
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.08) 78%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-alt) 90%, rgba(6, 4, 14, 0.98) 10%);
+  color: var(--text-main);
+  padding: 0.72rem 1rem;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.account-dialog-shell {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
 .account-sidebar {
   height: fit-content;
+}
+
+.account-sidebar-overlay {
+  height: 100%;
+  padding: 1.1rem;
+  border-right: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line) 86%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-glass) 90%, rgba(8, 6, 16, 0.98) 10%), rgba(8, 6, 16, 0.94));
 }
 
 .account-sidebar-head {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+}
+
+.account-nav-stack {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
 }
 
 .account-nav-button {
@@ -1280,6 +1394,17 @@ body::after {
   color: var(--text-muted);
 }
 
+.account-dialog-stage {
+  min-height: 0;
+  overflow: auto;
+  padding: 1.1rem;
+  scrollbar-color: color-mix(in srgb, var(--accent) 70%, transparent) color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.account-panel {
+  min-height: 100%;
+}
+
 .account-info-card {
   padding: 1rem 1.05rem;
   border: 1px solid var(--line);
@@ -1291,11 +1416,144 @@ body::after {
   align-content: start;
 }
 
+.account-range-card {
+  align-content: start;
+}
+
+.account-range-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.account-range-caption {
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.account-range-value {
+  flex: 0 0 auto;
+  min-width: 3.6rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line) 80%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-align: center;
+}
+
+.account-range-input {
+  width: 100%;
+  appearance: none;
+  height: 0.42rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, white 22%), color-mix(in srgb, var(--accent-hover) 72%, white 28%));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+  outline: none;
+}
+
+.account-range-input::-webkit-slider-thumb {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgba(255, 246, 224, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 243, 225, 0.98), rgba(255, 193, 104, 0.95));
+  box-shadow:
+    0 0 0 2px rgba(255, 168, 74, 0.16),
+    0 6px 14px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.account-range-input::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid rgba(255, 246, 224, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 243, 225, 0.98), rgba(255, 193, 104, 0.95));
+  box-shadow:
+    0 0 0 2px rgba(255, 168, 74, 0.16),
+    0 6px 14px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.account-range-input::-moz-range-track {
+  height: 0.42rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 78%, white 22%), color-mix(in srgb, var(--accent-hover) 72%, white 28%));
+}
+
 .account-toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.account-palette-card {
+  align-content: start;
+}
+
+.account-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 0.7rem;
+}
+
+.account-palette-button {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: start;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line) 86%);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.account-palette-button:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 36%, rgba(255, 255, 255, 0.16) 64%);
+}
+
+.account-palette-button-active {
+  border-color: color-mix(in srgb, var(--accent) 48%, rgba(255, 255, 255, 0.18) 52%);
+  box-shadow:
+    0 18px 30px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 18px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.account-palette-swatches {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.account-palette-swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .dashboard-control-grid {
@@ -3509,6 +3767,36 @@ body::after {
 }
 
 @media (max-width: 767px) {
+  .account-overlay {
+    padding: 0.65rem;
+  }
+
+  .account-dialog {
+    max-height: calc(100vh - 1.3rem);
+    border-radius: 1.45rem;
+  }
+
+  .account-dialog-head {
+    padding: 1rem;
+  }
+
+  .account-dialog-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .account-sidebar-overlay {
+    border-right: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line) 86%);
+  }
+
+  .account-nav-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .account-dialog-stage {
+    padding: 0.85rem;
+  }
+
   .shell-brand {
     width: 100%;
   }

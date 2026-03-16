@@ -12,7 +12,7 @@ import { AuthCard } from "./components/AuthCard";
 import { PixelField, LearnPlayground } from "./components/QuizArena";
 import posterLogo from "./assets/arena/nexgen-logo-poster.png";
 import { api, cx, API_URL } from "./lib/api";
-import { useAuth, useTheme, usePreferredStream, useSessionMode } from "./lib/hooks";
+import { useAuth, useTheme, usePreferredStream, useSessionMode, useArenaEffectsSettings } from "./lib/hooks";
 import { toErrorMessage, getInitials, getTopicLabel, getStreamLabel, getStreamDescription, getQuestionTypeLabel, getDifficultyLabel, getModeLabel, getTimerTone, formatCountdown } from "./lib/helpers";
 import type { View, AccountSection, ActiveRun } from "./lib/types";
 import { createQuizSound } from "./lib/quiz-sound";
@@ -64,7 +64,9 @@ export default function App() {
   const [theme, setTheme] = useTheme();
   const [preferredStream, setPreferredStream] = usePreferredStream();
   const [sessionMode, setSessionMode] = useSessionMode();
+  const [arenaEffects, setArenaEffects] = useArenaEffectsSettings();
   const [openShellMenu, setOpenShellMenu] = useState<"theme" | "account" | null>(null);
+  const [accountOverlayOpen, setAccountOverlayOpen] = useState(false);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<ActiveRun | null>(null);
@@ -118,6 +120,11 @@ export default function App() {
   useEffect(() => {
     setOpenShellMenu(null);
   }, [view, auth.user?.id]);
+
+  useEffect(() => {
+    if (auth.user) return;
+    setAccountOverlayOpen(false);
+  }, [auth.user]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -321,6 +328,8 @@ export default function App() {
     }
 
     clearAuth();
+    setOpenShellMenu(null);
+    setAccountOverlayOpen(false);
     setView("welcome");
     setSessionId(null);
     setActiveRun(null);
@@ -415,7 +424,8 @@ export default function App() {
                     onOpenChange={(open) => setOpenShellMenu(open ? "account" : null)}
                     onOpenSection={(section) => {
                       setAccountSection(section);
-                      setView("account");
+                      setOpenShellMenu(null);
+                      setAccountOverlayOpen(true);
                     }}
                     onLogout={() => void handleLogout()}
                   />
@@ -557,6 +567,7 @@ export default function App() {
         {view === "dashboard" && auth.user && (
           <Dashboard
             theme={theme}
+            effects={arenaEffects}
             error={runError}
             selectedStream={preferredStream}
             sessionMode={sessionMode}
@@ -571,26 +582,6 @@ export default function App() {
             onOpenBadges={() => setView("badges")}
             onOpenAdmin={() => setView("admin")}
             isAdmin={auth.user.role === "mod" || auth.user.role === "admin"}
-          />
-        )}
-
-        {view === "account" && auth.user && (
-          <AccountCenter
-            user={auth.user}
-            activeRun={activeRun}
-            section={accountSection}
-            onSectionChange={setAccountSection}
-            theme={theme}
-            onThemeChange={setTheme}
-            reduceMotion={reduceMotion}
-            onReduceMotionChange={(value) => {
-              setReduceMotion(value);
-              localStorage.setItem("rq_reduce_motion", value ? "1" : "0");
-            }}
-            selectedStream={preferredStream}
-            sessionMode={sessionMode}
-            onSelectStream={setPreferredStream}
-            onSessionModeChange={setSessionMode}
           />
         )}
 
@@ -874,6 +865,29 @@ export default function App() {
           </footer>
         )}
       </main>
+
+      {auth.user && accountOverlayOpen && (
+        <AccountCenter
+          user={auth.user}
+          activeRun={activeRun}
+          section={accountSection}
+          onSectionChange={setAccountSection}
+          onClose={() => setAccountOverlayOpen(false)}
+          theme={theme}
+          onThemeChange={setTheme}
+          reduceMotion={reduceMotion}
+          onReduceMotionChange={(value) => {
+            setReduceMotion(value);
+            localStorage.setItem("rq_reduce_motion", value ? "1" : "0");
+          }}
+          arenaEffects={arenaEffects}
+          onArenaEffectsChange={setArenaEffects}
+          selectedStream={preferredStream}
+          sessionMode={sessionMode}
+          onSelectStream={setPreferredStream}
+          onSessionModeChange={setSessionMode}
+        />
+      )}
     </div>
   );
 }

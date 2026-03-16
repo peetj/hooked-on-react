@@ -1,6 +1,6 @@
 import type { QuizStream, SessionMode } from "@react-quiz-1000/shared";
 
-export type View = "welcome" | "login" | "register" | "dashboard" | "quiz" | "leaderboard" | "social" | "badges" | "admin" | "account";
+export type View = "welcome" | "login" | "register" | "dashboard" | "quiz" | "leaderboard" | "social" | "badges" | "admin";
 export type AccountSection = "profile" | "account" | "security" | "preferences";
 
 export type AuthState = {
@@ -9,6 +9,15 @@ export type AuthState = {
 };
 
 export type ThemeName = "midnight" | "ember" | "nova" | "sunset" | "circuit";
+export type ArenaEffectsPalette = "classic" | "ember" | "nova" | "sunset" | "circuit";
+export type ArenaEffectsSettings = {
+  intensity: number;
+  gridLineCount: number;
+  gridColorRange: number;
+  effectTransparency: number;
+  energyDotCount: number;
+  energyPalette: ArenaEffectsPalette;
+};
 
 export type ActiveRun = {
   sessionId: string;

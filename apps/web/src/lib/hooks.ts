@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { QuizStream, SessionMode } from "@react-quiz-1000/shared";
-import type { AuthState, ThemeName } from "./types";
+import type { AuthState, ThemeName, ArenaEffectsPalette, ArenaEffectsSettings } from "./types";
+
+const DEFAULT_ARENA_EFFECTS: ArenaEffectsSettings = {
+  intensity: 75,
+  gridLineCount: 10,
+  gridColorRange: 35,
+  effectTransparency: 55,
+  energyDotCount: 36,
+  energyPalette: "classic"
+};
 
 export function useAuth(): [AuthState, (next: AuthState) => void, () => void] {
   const [auth, setAuth] = useState<AuthState>(() => {
@@ -73,6 +82,27 @@ export function useSessionMode(): [SessionMode, (next: SessionMode) => void] {
   return [mode, set];
 }
 
+export function useArenaEffectsSettings(): [ArenaEffectsSettings, (next: ArenaEffectsSettings) => void] {
+  const [settings, setSettings] = useState<ArenaEffectsSettings>(() => {
+    const raw = localStorage.getItem("rq_arena_effects");
+    if (!raw) return DEFAULT_ARENA_EFFECTS;
+
+    try {
+      return normalizeArenaEffects(JSON.parse(raw) as Partial<ArenaEffectsSettings>);
+    } catch {
+      return DEFAULT_ARENA_EFFECTS;
+    }
+  });
+
+  const set = (next: ArenaEffectsSettings) => {
+    const normalized = normalizeArenaEffects(next);
+    setSettings(normalized);
+    localStorage.setItem("rq_arena_effects", JSON.stringify(normalized));
+  };
+
+  return [settings, set];
+}
+
 export function useExclusiveDetailsMenu(ref: RefObject<HTMLDetailsElement | null>) {
   const menuIdRef = useRef(`shell-menu-${Math.random().toString(36).slice(2)}`);
 
@@ -125,4 +155,24 @@ export function useExclusiveDetailsMenu(ref: RefObject<HTMLDetailsElement | null
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [ref]);
+}
+
+function clampNumber(value: number | undefined, min: number, max: number, fallback: number) {
+  if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function isArenaEffectsPalette(value: unknown): value is ArenaEffectsPalette {
+  return value === "classic" || value === "ember" || value === "nova" || value === "sunset" || value === "circuit";
+}
+
+function normalizeArenaEffects(settings: Partial<ArenaEffectsSettings>): ArenaEffectsSettings {
+  return {
+    intensity: clampNumber(settings.intensity, 0, 100, DEFAULT_ARENA_EFFECTS.intensity),
+    gridLineCount: clampNumber(settings.gridLineCount, 4, 48, DEFAULT_ARENA_EFFECTS.gridLineCount),
+    gridColorRange: clampNumber(settings.gridColorRange, 0, 100, DEFAULT_ARENA_EFFECTS.gridColorRange),
+    effectTransparency: clampNumber(settings.effectTransparency, 0, 100, DEFAULT_ARENA_EFFECTS.effectTransparency),
+    energyDotCount: clampNumber(settings.energyDotCount, 0, 180, DEFAULT_ARENA_EFFECTS.energyDotCount),
+    energyPalette: isArenaEffectsPalette(settings.energyPalette) ? settings.energyPalette : DEFAULT_ARENA_EFFECTS.energyPalette
+  };
 }

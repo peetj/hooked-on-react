@@ -2,10 +2,11 @@ import { useEffect, useRef } from "react";
 import type { QuizStream, SessionMode } from "@react-quiz-1000/shared";
 import arenaCssRaw from "../assets/arena/react-quest-arena-v2.css?raw";
 import arenaMarkupRaw from "../assets/arena/react-quest-arena-v2.body.html?raw";
-import type { ThemeName } from "../lib/types";
+import type { ThemeName, ArenaEffectsPalette, ArenaEffectsSettings } from "../lib/types";
 
 type Props = {
   theme: ThemeName;
+  effects: ArenaEffectsSettings;
   selectedStream: QuizStream;
   sessionMode: SessionMode;
   busy: boolean;
@@ -32,14 +33,48 @@ const FONT_HREF =
 
 const POSTER_STREAMS: QuizStream[] = ["1", "2", "3"];
 
-const PARTICLE_CONFIGS = [
-  { color: "#f0a500", size: 2 },
-  { color: "#ffd166", size: 1.5 },
-  { color: "#c060ff", size: 2 },
-  { color: "#9060f0", size: 1.5 },
-  { color: "#ff8020", size: 1.5 },
-  { color: "#ffe090", size: 1 }
-] as const;
+const PARTICLE_PALETTES: Record<ArenaEffectsPalette, Array<{ color: string; size: number }>> = {
+  classic: [
+    { color: "#f0a500", size: 2 },
+    { color: "#ffd166", size: 1.5 },
+    { color: "#c060ff", size: 2 },
+    { color: "#9060f0", size: 1.5 },
+    { color: "#ff8020", size: 1.5 },
+    { color: "#ffe090", size: 1 }
+  ],
+  ember: [
+    { color: "#ff6c38", size: 2 },
+    { color: "#ff8f5a", size: 1.6 },
+    { color: "#ffbe8a", size: 1.4 },
+    { color: "#ffd8b5", size: 1.1 }
+  ],
+  nova: [
+    { color: "#ff66b9", size: 2 },
+    { color: "#ffb8ec", size: 1.5 },
+    { color: "#d57eff", size: 1.8 },
+    { color: "#ffe2f7", size: 1.2 }
+  ],
+  sunset: [
+    { color: "#ff835d", size: 1.8 },
+    { color: "#ffb24f", size: 1.7 },
+    { color: "#ffd48f", size: 1.3 },
+    { color: "#ffd7c0", size: 1.1 }
+  ],
+  circuit: [
+    { color: "#2bc993", size: 1.8 },
+    { color: "#49dfb0", size: 1.6 },
+    { color: "#5ef2cb", size: 1.4 },
+    { color: "#9dffe0", size: 1.1 }
+  ]
+};
+
+const GRID_THEME_COLORS: Record<ThemeName, [string, string]> = {
+  midnight: ["#ffd166", "#9060f0"],
+  ember: ["#ff8f5a", "#ff6c38"],
+  nova: ["#ffb8ec", "#d57eff"],
+  sunset: ["#ffb24f", "#ff835d"],
+  circuit: ["#9dffe0", "#49dfb0"]
+};
 
 type GuideSection = {
   heading: string;
@@ -194,9 +229,12 @@ const ARENA_MARKUP = arenaMarkupRaw
 
 const ARENA_CSS = [
   ":host { display: block; width: 100%; }",
-  ".arena-shell { position: relative; min-height: 100vh; --arena-glow-top: rgba(90,30,160,0.50); --arena-glow-left: rgba(160,70,0,0.22); --arena-glow-right: rgba(70,20,140,0.22); --arena-glow-center: rgba(30,10,70,0.30); --arena-base-start: #0c0818; --arena-base-mid1: #160e28; --arena-base-mid2: #100c22; --arena-base-end: #080612; --orb-one: rgba(90,30,160,0.28); --orb-two: rgba(160,70,0,0.18); --orb-three: rgba(60,15,130,0.20); transition: filter 220ms ease, opacity 220ms ease; }",
+  ".arena-shell { position: relative; min-height: 100vh; --arena-glow-top: rgba(90,30,160,0.50); --arena-glow-left: rgba(160,70,0,0.22); --arena-glow-right: rgba(70,20,140,0.22); --arena-glow-center: rgba(30,10,70,0.30); --arena-base-start: #0c0818; --arena-base-mid1: #160e28; --arena-base-mid2: #100c22; --arena-base-end: #080612; --orb-one: rgba(90,30,160,0.28); --orb-two: rgba(160,70,0,0.18); --orb-three: rgba(60,15,130,0.20); --arena-grid-step: 80px; --arena-grid-opacity: 0.018; --arena-grid-line-a: rgba(255, 255, 255, 0.02); --arena-grid-line-b: rgba(255, 255, 255, 0.02); --arena-particle-layer-opacity: 1; --arena-orb-opacity: 1; transition: filter 220ms ease, opacity 220ms ease; }",
   arenaCssRaw.replace(/:root\s*\{/, ":host, .arena-shell {").replace(/body\s*\{/, ".arena-shell {"),
   ".arena-shell .bg-base { background: radial-gradient(ellipse 90% 55% at 50% -5%, var(--arena-glow-top) 0%, transparent 70%), radial-gradient(ellipse 55% 45% at 15% 85%, var(--arena-glow-left) 0%, transparent 65%), radial-gradient(ellipse 50% 50% at 85% 65%, var(--arena-glow-right) 0%, transparent 65%), radial-gradient(ellipse 40% 30% at 50% 50%, var(--arena-glow-center) 0%, transparent 80%), linear-gradient(175deg, var(--arena-base-start) 0%, var(--arena-base-mid1) 35%, var(--arena-base-mid2) 65%, var(--arena-base-end) 100%); }",
+  ".arena-shell .bg-grid { background-image: repeating-linear-gradient(0deg, transparent, transparent calc(var(--arena-grid-step) - 1px), var(--arena-grid-line-a) var(--arena-grid-step)), repeating-linear-gradient(90deg, transparent, transparent calc(var(--arena-grid-step) - 1px), var(--arena-grid-line-b) var(--arena-grid-step)); }",
+  ".arena-shell .particles { opacity: var(--arena-particle-layer-opacity); }",
+  ".arena-shell .orb { opacity: var(--arena-orb-opacity); }",
   ".arena-shell .orb-1 { background: var(--orb-one); }",
   ".arena-shell .orb-2 { background: var(--orb-two); }",
   ".arena-shell .orb-3 { background: var(--orb-three); }",
@@ -286,7 +324,6 @@ export function ReactQuestArenaDashboard(props: Props) {
 
     ensureLearnButton(shadow);
 
-    populateParticles(shadow);
     const guideOverlay = ensureGuideOverlay(shadow);
 
     const audio = createArenaAudio();
@@ -461,7 +498,8 @@ export function ReactQuestArenaDashboard(props: Props) {
     const shadow = hostRef.current?.shadowRoot;
     if (!shadow) return;
     syncPosterTheme(shadow, props.theme);
-  }, [props.theme]);
+    syncPosterEffects(shadow, props.effects, props.theme);
+  }, [props.effects, props.theme]);
 
   return <div ref={hostRef} className="arena-poster-host" aria-label="React Quest Arena dashboard" />;
 }
@@ -523,6 +561,39 @@ function syncPosterTheme(shadow: ShadowRoot, theme: ThemeName) {
   const shell = shadow.querySelector<HTMLElement>(".arena-shell");
   if (!shell) return;
   shell.dataset.theme = theme;
+}
+
+function syncPosterEffects(shadow: ShadowRoot, effects: ArenaEffectsSettings, theme: ThemeName) {
+  const shell = shadow.querySelector<HTMLElement>(".arena-shell");
+  if (!shell) return;
+
+  const intensity = clamp(effects.intensity, 0, 100) / 100;
+  const transparency = clamp(effects.effectTransparency, 0, 100) / 100;
+  const gridLineCount = clamp(effects.gridLineCount, 4, 48);
+  const gridColorRange = clamp(effects.gridColorRange, 0, 100) / 100;
+  const effectPresence = 0.2 + transparency * 1.15;
+  const gridOpacity = Math.min(0.22, (0.008 + transparency * 0.13) * (0.45 + intensity * 0.9));
+  const particleLayerOpacity = Math.min(1, 0.2 + intensity * 0.55 + transparency * 0.45);
+  const orbOpacity = Math.min(1, 0.16 + intensity * 0.4 + transparency * 0.5);
+  const particleCount = Math.round(clamp(effects.energyDotCount, 0, 180) * Math.max(0, intensity));
+  const [gridToneA, gridToneB] = GRID_THEME_COLORS[theme];
+  const gridBaseA = mixHexColors("#f2ebff", gridToneA, gridColorRange);
+  const gridBaseB = mixHexColors("#edf3ff", gridToneB, gridColorRange);
+
+  shell.style.setProperty("--arena-grid-step", `calc(100vmin / ${gridLineCount})`);
+  shell.style.setProperty("--arena-grid-opacity", gridOpacity.toFixed(3));
+  shell.style.setProperty("--arena-grid-line-a", toRgba(gridBaseA, gridOpacity));
+  shell.style.setProperty("--arena-grid-line-b", toRgba(gridBaseB, gridOpacity));
+  shell.style.setProperty("--arena-particle-layer-opacity", particleLayerOpacity.toFixed(3));
+  shell.style.setProperty("--arena-orb-opacity", orbOpacity.toFixed(3));
+
+  populateParticles(
+    shadow,
+    effects.energyPalette,
+    particleCount,
+    transparency,
+    Math.min(1.45, intensity + effectPresence * 0.18)
+  );
 }
 
 function ensureGuideOverlay(shadow: ShadowRoot) {
@@ -599,25 +670,39 @@ function hydrateGuideOverlay(overlay: HTMLElement, guide: HowToGuide) {
   );
 }
 
-function populateParticles(shadow: ShadowRoot) {
+function populateParticles(
+  shadow: ShadowRoot,
+  paletteName: ArenaEffectsPalette,
+  count: number,
+  transparency: number,
+  intensity: number
+) {
   const container = shadow.getElementById("particles");
-  if (!container || container.childElementCount > 0) return;
+  if (!container) return;
 
-  for (let index = 0; index < 36; index += 1) {
+  container.replaceChildren();
+  if (count <= 0 || intensity <= 0) return;
+
+  const palette = PARTICLE_PALETTES[paletteName] ?? PARTICLE_PALETTES.classic;
+  const opacityBase = Math.max(0.12, transparency * (0.42 + intensity * 0.38));
+
+  for (let index = 0; index < count; index += 1) {
     const particle = document.createElement("div");
-    const config = PARTICLE_CONFIGS[Math.floor(Math.random() * PARTICLE_CONFIGS.length)];
+    const config = palette[Math.floor(Math.random() * palette.length)];
     const left = Math.random() * 100;
     const delay = Math.random() * 10;
-    const duration = 7 + Math.random() * 12;
-    const dx = (Math.random() - 0.5) * 80;
+    const duration = 8 + (1 - intensity) * 6 + Math.random() * 9;
+    const dx = (Math.random() - 0.5) * (26 + intensity * 62);
+    const alpha = Math.min(1, opacityBase * (0.7 + Math.random() * 0.5));
+    const glowAlpha = Math.min(1, alpha + 0.18);
 
     particle.className = "p";
     particle.style.left = `${left}%`;
     particle.style.bottom = "-4px";
     particle.style.width = `${config.size}px`;
     particle.style.height = `${config.size}px`;
-    particle.style.background = config.color;
-    particle.style.boxShadow = `0 0 4px ${config.color}`;
+    particle.style.background = toRgba(config.color, alpha);
+    particle.style.boxShadow = `0 0 ${4 + config.size * 2}px ${toRgba(config.color, glowAlpha)}`;
     particle.style.setProperty("--dx", `${dx}px`);
     particle.style.animationDelay = `${delay}s`;
     particle.style.animationDuration = `${duration}s`;
@@ -763,4 +848,45 @@ function getAudioContextCtor() {
     };
 
   return win.AudioContext ?? win.webkitAudioContext ?? null;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function toRgba(hex: string, alpha: number) {
+  const normalized = hex.replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((value) => `${value}${value}`).join("")
+    : normalized;
+  const red = Number.parseInt(expanded.slice(0, 2), 16);
+  const green = Number.parseInt(expanded.slice(2, 4), 16);
+  const blue = Number.parseInt(expanded.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha.toFixed(3)})`;
+}
+
+function mixHexColors(from: string, to: string, amount: number) {
+  const start = expandHex(from);
+  const end = expandHex(to);
+  const blend = clamp(amount, 0, 1);
+  const red = Math.round(start.red + (end.red - start.red) * blend);
+  const green = Math.round(start.green + (end.green - start.green) * blend);
+  const blue = Math.round(start.blue + (end.blue - start.blue) * blend);
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+}
+
+function expandHex(hex: string) {
+  const normalized = hex.replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized.split("").map((value) => `${value}${value}`).join("")
+    : normalized;
+  return {
+    red: Number.parseInt(expanded.slice(0, 2), 16),
+    green: Number.parseInt(expanded.slice(2, 4), 16),
+    blue: Number.parseInt(expanded.slice(4, 6), 16)
+  };
+}
+
+function toHex(value: number) {
+  return value.toString(16).padStart(2, "0");
 }
