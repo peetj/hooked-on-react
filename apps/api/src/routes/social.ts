@@ -79,10 +79,18 @@ socialRouter.post("/encourage", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "invalid_template" });
   }
 
-  const fromUser = await User.findById(auth.sub);
+  if (body.data.toUserId === auth.sub) {
+    return res.status(400).json({ error: "cannot_encourage_self" });
+  }
+
+  const [fromUser, toUser] = await Promise.all([
+    User.findById(auth.sub),
+    User.findById(body.data.toUserId).select({ _id: 1, banned: 1 }).lean()
+  ]);
   if (!fromUser) return res.status(401).json({ error: "bad_user" });
   if (fromUser.banned) return res.status(403).json({ error: "banned" });
   if (fromUser.mutedSocialUntil && fromUser.mutedSocialUntil > new Date()) return res.status(403).json({ error: "muted" });
+  if (!toUser || toUser.banned) return res.status(404).json({ error: "target_user_not_found" });
 
   // followers lane: require mutual follow (safer / more meaningful)
   if (body.data.lane === "followers") {

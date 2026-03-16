@@ -264,9 +264,12 @@ export default function App() {
   }
 
   async function handleLogout() {
-    if (auth.token && sessionId && served && !feedback) {
+    if (auth.token && activeRun && !activeRun.paused && !feedback) {
       try {
-        await pauseSession();
+        await api<{ ok: true; remainingTimeSec: number }>(`/session/${activeRun.sessionId}/pause`, {
+          token: auth.token,
+          method: "POST"
+        });
       } catch {
         // Best-effort pause; clear local auth either way.
       }
@@ -525,7 +528,12 @@ export default function App() {
         )}
 
         {view === "leaderboard" && (
-          <Leaderboard token={auth.token} selectedStream={preferredStream} onSelectStream={setPreferredStream} />
+          <Leaderboard
+            token={auth.token}
+            viewerId={auth.user?.id ?? null}
+            selectedStream={preferredStream}
+            onSelectStream={setPreferredStream}
+          />
         )}
 
         {view === "social" && (

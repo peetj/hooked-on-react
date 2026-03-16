@@ -48,10 +48,12 @@ type AdminUserRow = {
   mutedSocialUntil: string | null;
   createdAt: string;
 };
-
-
-
-export function Leaderboard(props: { token: string | null; selectedStream: QuizStream; onSelectStream: (next: QuizStream) => void }) {
+export function Leaderboard(props: {
+  token: string | null;
+  viewerId: string | null;
+  selectedStream: QuizStream;
+  onSelectStream: (next: QuizStream) => void;
+}) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [template, setTemplate] = useState<(typeof ENCOURAGEMENT_TEMPLATES)[number]>(ENCOURAGEMENT_TEMPLATES[0]);
@@ -179,62 +181,71 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.userId} className={cx("quest-table-row", i % 2 ? "quest-table-row-alt" : "")}>
-                <td className="py-2 pr-4 font-mono" style={{ color: "var(--text-faint)" }}>{i + 1}</td>
-                <td className="py-2 pr-4 font-semibold" style={{ color: "var(--text-strong)" }}>{r.displayName}</td>
-                <td className="py-2 pr-4 font-mono">{r.rating.toFixed(1)}</td>
-                <td className="py-2 pr-4">{Math.round(r.accuracy * 100)}%</td>
-                <td className="py-2 pr-4">{r.bestStreak}</td>
-                <td className="py-2 pr-4">{Math.round(r.avgTimeMs / 1000)}s</td>
-                <td className="py-2 pr-4">
-                  {mutual.has(r.userId) ? (
-                    <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--success-soft)", color: "var(--success-text)" }}>Friends</span>
-                  ) : (
-                    <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--surface-alt)", color: "var(--text-faint)" }}>-</span>
-                  )}
-                </td>
-                <td className="py-2 pr-4">
-                  {following.has(r.userId) ? (
-                    <button
-                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                      disabled={!props.token}
-                      onClick={() => void unfollow(r.userId)}
-                    >
-                      Unfollow
-                    </button>
-                  ) : (
-                    <button
-                      className="quest-btn-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
-                      disabled={!props.token}
-                      onClick={() => void follow(r.userId)}
-                    >
-                      Follow
-                    </button>
-                  )}
-                </td>
-                <td className="py-2 pr-4">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                      disabled={!props.token || !mutual.has(r.userId) || sendingTo === r.userId + ":followers"}
-                      onClick={() => void encourage(r.userId, "followers")}
-                      title={mutual.has(r.userId) ? "" : "Mutual follow required"}
-                    >
-                      Followers
-                    </button>
-                    <button
-                      className="quest-btn-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
-                      disabled={!props.token || sendingTo === r.userId + ":anyone"}
-                      onClick={() => void encourage(r.userId, "anyone")}
-                    >
-                      Anyone
-                    </button>
-                  </div>
-                  <div className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>Anyone lane is throttled hard. Friends lane requires mutual follow.</div>
-                </td>
-              </tr>
-            ))}
+            {rows.map((r, i) => {
+              const isSelf = props.viewerId === r.userId;
+
+              return (
+                <tr key={r.userId} className={cx("quest-table-row", i % 2 ? "quest-table-row-alt" : "")}>
+                  <td className="py-2 pr-4 font-mono" style={{ color: "var(--text-faint)" }}>{i + 1}</td>
+                  <td className="py-2 pr-4 font-semibold" style={{ color: "var(--text-strong)" }}>{r.displayName}</td>
+                  <td className="py-2 pr-4 font-mono">{r.rating.toFixed(1)}</td>
+                  <td className="py-2 pr-4">{Math.round(r.accuracy * 100)}%</td>
+                  <td className="py-2 pr-4">{r.bestStreak}</td>
+                  <td className="py-2 pr-4">{Math.round(r.avgTimeMs / 1000)}s</td>
+                  <td className="py-2 pr-4">
+                    {isSelf ? (
+                      <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--surface-alt)", color: "var(--text-faint)" }}>You</span>
+                    ) : mutual.has(r.userId) ? (
+                      <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--success-soft)", color: "var(--success-text)" }}>Friends</span>
+                    ) : (
+                      <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--surface-alt)", color: "var(--text-faint)" }}>-</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-4">
+                    {isSelf ? (
+                      <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--surface-alt)", color: "var(--text-faint)" }}>-</span>
+                    ) : following.has(r.userId) ? (
+                      <button
+                        className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
+                        disabled={!props.token}
+                        onClick={() => void unfollow(r.userId)}
+                      >
+                        Unfollow
+                      </button>
+                    ) : (
+                      <button
+                        className="quest-btn-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                        disabled={!props.token}
+                        onClick={() => void follow(r.userId)}
+                      >
+                        Follow
+                      </button>
+                    )}
+                  </td>
+                  <td className="py-2 pr-4">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
+                        disabled={!props.token || isSelf || !mutual.has(r.userId) || sendingTo === r.userId + ":followers"}
+                        onClick={() => void encourage(r.userId, "followers")}
+                        title={isSelf ? "You cannot encourage yourself" : mutual.has(r.userId) ? "" : "Mutual follow required"}
+                      >
+                        Followers
+                      </button>
+                      <button
+                        className="quest-btn-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                        disabled={!props.token || isSelf || sendingTo === r.userId + ":anyone"}
+                        onClick={() => void encourage(r.userId, "anyone")}
+                        title={isSelf ? "You cannot encourage yourself" : ""}
+                      >
+                        Anyone
+                      </button>
+                    </div>
+                    <div className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>Anyone lane is throttled hard. Friends lane requires mutual follow.</div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

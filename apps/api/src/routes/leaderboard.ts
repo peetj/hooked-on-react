@@ -5,43 +5,78 @@ import type { QuizStream } from "@react-quiz-1000/shared";
 
 export const leaderboardRouter = Router();
 
+type LeaderboardRow = {
+  userId: string;
+  displayName: string;
+  rating: number;
+  totalAnswered: number;
+  accuracy: number;
+  bestStreak: number;
+  avgTimeMs: number;
+};
+
 leaderboardRouter.get("/", async (req, res) => {
   const limit = Math.max(1, Math.min(100, Number(req.query.limit ?? 50)));
   const minAnswered = Math.max(0, Math.min(500, Number(req.query.minAnswered ?? 30)));
   const stream = (["adaptive", "1", "2", "3", "4", "5"].includes(String(req.query.stream)) ? String(req.query.stream) : "adaptive") as QuizStream;
+  const streamPath = `streams.${stream}`;
 
-  const stats = await UserStats.find({})
-    .limit(500)
-    .lean();
-
-  const userIds = stats.map((s: any) => s.userId);
-  const users = await User.find({ _id: { $in: userIds }, shadowbanned: false, banned: false })
-    .select({ displayName: 1, createdAt: 1 })
-    .lean();
-
-  const userById = new Map(users.map((u: any) => [u._id.toString(), u]));
-
-  const rows = stats
-    .map((s: any) => {
-      const streamStats = s.streams?.[stream];
-      const totalAnswered = Number(streamStats?.totalAnswered ?? 0);
-      if (totalAnswered < minAnswered) return null;
-
-      const u = userById.get(s.userId.toString());
-      if (!u) return null;
-      return {
-        userId: s.userId.toString(),
-        displayName: u.displayName,
-        rating: Number(streamStats?.rating ?? 0),
-        totalAnswered,
-        accuracy: totalAnswered ? Number(streamStats?.totalCorrect ?? 0) / totalAnswered : 0,
-        bestStreak: Number(streamStats?.bestStreak ?? 0),
-        avgTimeMs: Number(streamStats?.avgTimeMs ?? 0)
-      };
-    })
-    .filter(Boolean)
-    .sort((a: any, b: any) => b.rating - a.rating || b.bestStreak - a.bestStreak || a.avgTimeMs - b.avgTimeMs)
-    .slice(0, limit);
+  const rows = await UserStats.aggregate<LeaderboardRow>([
+    {
+      $match: {
+        [`${streamPath}.totalAnswered`]: { $gte: minAnswered }
+      }
+    },
+    {
+      $lookup: {
+        from: User.collection.name,
+        localField: "userId",
+        foreignField: "_id",
+        as: "user"
+      }
+    },
+    { $unwind: "$user" },
+    {
+      $match: {
+        "user.shadowbanned": false,
+        "user.banned": false
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        userId: { $toString: "$userId" },
+        displayName: "$user.displayName",
+        rating: { $ifNull: [`$${streamPath}.rating`, 0] },
+        totalAnswered: { $ifNull: [`$${streamPath}.totalAnswered`, 0] },
+        totalCorrect: { $ifNull: [`$${streamPath}.totalCorrect`, 0] },
+        bestStreak: { $ifNull: [`$${streamPath}.bestStreak`, 0] },
+        avgTimeMs: { $ifNull: [`$${streamPath}.avgTimeMs`, 0] }
+      }
+    },
+    {
+      $addFields: {
+        accuracy: {
+          $cond: [{ $gt: ["$totalAnswered", 0] }, { $divide: ["$totalCorrect", "$totalAnswered"] }, 0]
+        }
+      }
+    },
+    {
+      $sort: {
+        rating: -1,
+        bestStreak: -1,
+        avgTimeMs: 1,
+        totalAnswered: -1,
+        displayName: 1
+      }
+    },
+    { $limit: limit },
+    {
+      $project: {
+        totalCorrect: 0
+      }
+    }
+  ]);
 
   return res.json({ rows, stream });
 });
