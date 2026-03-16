@@ -230,139 +230,6 @@ body::after {
   text-transform: uppercase;
 }
 
-.theme-shell .bg-white,
-.theme-shell .bg-slate-50,
-.theme-shell [class*="bg-slate-50/60"],
-.theme-shell .bg-indigo-50 {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(17, 8, 22, 0.94)),
-    radial-gradient(circle at 18% 0%, rgba(255, 132, 56, 0.12), transparent 34%) !important;
-  color: #fff2e6;
-}
-
-.theme-shell .bg-rose-50,
-.theme-shell .bg-rose-100 {
-  background:
-    linear-gradient(180deg, rgba(255, 133, 160, 0.14), rgba(58, 12, 24, 0.94)),
-    radial-gradient(circle at 20% 0%, rgba(255, 120, 110, 0.18), transparent 30%) !important;
-}
-
-.theme-shell .bg-emerald-100 {
-  background:
-    linear-gradient(180deg, rgba(88, 230, 176, 0.16), rgba(10, 40, 28, 0.94)),
-    radial-gradient(circle at 18% 0%, rgba(135, 255, 188, 0.18), transparent 34%) !important;
-}
-
-.theme-shell .bg-amber-50,
-.theme-shell .bg-amber-100 {
-  background:
-    linear-gradient(180deg, rgba(255, 195, 92, 0.18), rgba(52, 24, 8, 0.94)),
-    radial-gradient(circle at 18% 0%, rgba(255, 226, 138, 0.18), transparent 34%) !important;
-}
-
-.theme-shell .bg-indigo-600,
-.theme-shell .bg-indigo-500,
-.theme-shell .bg-slate-900,
-.theme-shell .bg-slate-800 {
-  background:
-    linear-gradient(180deg, rgba(255, 148, 58, 0.98), rgba(113, 31, 9, 0.98)) !important;
-  color: #fff6ea !important;
-  border-color: rgba(255, 206, 133, 0.28) !important;
-}
-
-.theme-shell .bg-rose-700,
-.theme-shell .bg-rose-600,
-.theme-shell .bg-amber-600,
-.theme-shell .bg-amber-500 {
-  color: #fff6ee !important;
-}
-
-.theme-shell .border-slate-200,
-.theme-shell .border-slate-100,
-.theme-shell .border-rose-200,
-.theme-shell .border-amber-200 {
-  border-color: rgba(255, 182, 112, 0.18) !important;
-}
-
-.theme-shell .text-slate-900,
-.theme-shell .text-slate-800,
-.theme-shell .text-slate-700 {
-  color: #fff2e2 !important;
-}
-
-.theme-shell .text-slate-600 {
-  color: rgba(255, 222, 198, 0.8) !important;
-}
-
-.theme-shell .text-slate-500,
-.theme-shell .text-slate-400 {
-  color: rgba(255, 192, 148, 0.66) !important;
-}
-
-.theme-shell .text-indigo-700 {
-  color: #ffd48f !important;
-}
-
-.theme-shell .text-rose-700 {
-  color: #ffc9d4 !important;
-}
-
-.theme-shell .text-emerald-700 {
-  color: #c5ffe0 !important;
-}
-
-.theme-shell .text-amber-800 {
-  color: #ffe0a7 !important;
-}
-
-.theme-shell .shadow-sm,
-.theme-shell .shadow {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 22px 38px rgba(0, 0, 0, 0.28) !important;
-}
-
-.theme-shell .hover\:bg-slate-50:hover,
-.theme-shell .hover\:bg-rose-100:hover {
-  background:
-    linear-gradient(180deg, rgba(255, 170, 80, 0.16), rgba(34, 11, 22, 0.92)) !important;
-}
-
-.theme-shell .hover\:bg-slate-800:hover,
-.theme-shell .hover\:bg-indigo-500:hover,
-.theme-shell .hover\:bg-rose-500:hover,
-.theme-shell .hover\:bg-amber-500:hover,
-.theme-shell .hover\:bg-rose-600:hover {
-  filter: brightness(1.08);
-}
-
-.theme-shell .focus\:ring-2:focus,
-.theme-shell .focus\:ring-indigo-300:focus {
-  box-shadow:
-    0 0 0 2px rgba(255, 151, 73, 0.35),
-    0 0 0 5px rgba(255, 102, 45, 0.12) !important;
-}
-
-.theme-shell input,
-.theme-shell select,
-.theme-shell textarea {
-  background: rgba(14, 8, 22, 0.9);
-  color: #fff1df;
-  border-color: rgba(255, 181, 104, 0.2);
-}
-
-.theme-shell input::placeholder,
-.theme-shell textarea::placeholder {
-  color: rgba(255, 200, 162, 0.44);
-}
-
-.theme-shell table {
-  color: #fff0df;
-}
-
-.theme-shell a {
-  color: #ffd08b;
-}
 
 .theme-logo {
   position: relative;
@@ -1683,6 +1550,45 @@ body::after {
 
 .theme-shell table {
   color: var(--text-main);
+}
+
+.theme-shell a {
+  color: var(--accent);
+}
+
+.theme-shell input,
+.theme-shell select,
+.theme-shell textarea {
+  background-color: var(--surface-alt) !important;
+  color: var(--text-main) !important;
+  border-color: var(--line) !important;
+}
+
+.theme-shell input::placeholder,
+.theme-shell textarea::placeholder {
+  color: var(--text-faint) !important;
+}
+
+.theme-shell .bg-slate-800 {
+  background-color: var(--button-dark) !important;
+}
+
+.theme-shell .bg-rose-600,
+.theme-shell .bg-rose-700,
+.theme-shell .bg-amber-600,
+.theme-shell .bg-amber-500 {
+  color: var(--text-strong) !important;
+}
+
+.theme-shell .hover\:bg-rose-500:hover,
+.theme-shell .hover\:bg-rose-600:hover,
+.theme-shell .hover\:bg-amber-500:hover {
+  filter: brightness(1.12);
+}
+
+.theme-shell .border-rose-200,
+.theme-shell .border-amber-200 {
+  border-color: var(--line) !important;
 }
 
 .quest-hero,
