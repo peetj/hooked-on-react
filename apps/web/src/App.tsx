@@ -445,6 +445,7 @@ export default function App() {
         {view === "login" && (
           <AuthCard
             mode="login"
+            theme={theme}
             onDone={(next) => {
               setAuthState(next);
               setView("dashboard");
@@ -456,6 +457,7 @@ export default function App() {
         {view === "register" && (
           <AuthCard
             mode="register"
+            theme={theme}
             onDone={(next) => {
               setAuthState(next);
               setView("dashboard");
