@@ -14,6 +14,7 @@ import { api, cx, API_URL } from "./lib/api";
 import { useAuth, useTheme, usePreferredStream, useSessionMode } from "./lib/hooks";
 import { toErrorMessage, getInitials, getTopicLabel, getStreamLabel, getStreamDescription, getQuestionTypeLabel, getDifficultyLabel, getModeLabel, getTimerTone, formatCountdown } from "./lib/helpers";
 import type { View, AccountSection, ActiveRun } from "./lib/types";
+import { createQuizSound } from "./lib/quiz-sound";
 
 export default function App() {
   const [view, setView] = useState<View>("welcome");
@@ -34,6 +35,7 @@ export default function App() {
   const prevRatingRef = useRef<number>(0);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
 
+  const quizSoundRef = useRef(createQuizSound());
   const startedAtRef = useRef<number>(0);
   const [timeLeftMs, setTimeLeftMs] = useState<number>(0);
   const [timerArmed, setTimerArmed] = useState(false);
@@ -175,6 +177,11 @@ export default function App() {
         streak: resp.newStreak
       });
 
+      if (!reduceMotion) {
+        if (resp.correct) quizSoundRef.current.playCorrect();
+        else quizSoundRef.current.playWrong();
+      }
+
       if (!resp.correct) {
         setShake(true);
         window.setTimeout(() => setShake(false), 420);
@@ -284,6 +291,17 @@ export default function App() {
     void loadNextQuestion(sessionId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, sessionId, served, isQuestionLoading, runError]);
+
+  const prevTimerToneRef = useRef(timerTone);
+  useEffect(() => {
+    const prev = prevTimerToneRef.current;
+    prevTimerToneRef.current = timerTone;
+    if (reduceMotion || !showTimer || feedback) return;
+    if (prev !== timerTone) {
+      if (timerTone === "warn") quizSoundRef.current.playTimerWarn();
+      else if (timerTone === "critical") quizSoundRef.current.playTimerCritical();
+    }
+  }, [timerTone, reduceMotion, showTimer, feedback]);
 
   useEffect(() => {
     if (!served) return;
