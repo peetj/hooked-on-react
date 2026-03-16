@@ -58,12 +58,13 @@ function QuizActionGlyph(props: { name: "clear" | "dashboard" | "next" | "pause"
 }
 
 export default function App() {
-  const [view, setView] = useState<View>("welcome");
-  const [accountSection, setAccountSection] = useState<AccountSection>("profile");
   const [auth, setAuthState, clearAuth] = useAuth();
+  const [view, setView] = useState<View>(() => (auth.token ? "dashboard" : "welcome"));
+  const [accountSection, setAccountSection] = useState<AccountSection>("profile");
   const [theme, setTheme] = useTheme();
   const [preferredStream, setPreferredStream] = usePreferredStream();
   const [sessionMode, setSessionMode] = useSessionMode();
+  const [openShellMenu, setOpenShellMenu] = useState<"theme" | "account" | null>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<ActiveRun | null>(null);
@@ -113,6 +114,10 @@ export default function App() {
   useEffect(() => {
     if (auth.token) setView("dashboard");
   }, [auth.token]);
+
+  useEffect(() => {
+    setOpenShellMenu(null);
+  }, [view, auth.user?.id]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -395,18 +400,34 @@ export default function App() {
           <div className="shell-utility-row">
             <div className="shell-utility-spacer" />
             <div className="shell-actions flex flex-wrap items-center justify-end gap-2">
-              <ThemeSwitcher theme={theme} onChange={setTheme} />
               {auth.user ? (
-                <AccountMenu
-                  initials={getInitials(auth.user.displayName)}
-                  onOpenSection={(section) => {
-                    setAccountSection(section);
-                    setView("account");
-                  }}
-                  onLogout={() => void handleLogout()}
-                />
+                <div className="shell-control-cluster">
+                  <ThemeSwitcher
+                    theme={theme}
+                    open={openShellMenu === "theme"}
+                    onChange={setTheme}
+                    onOpenChange={(open) => setOpenShellMenu(open ? "theme" : null)}
+                  />
+                  <AccountMenu
+                    embedded
+                    initials={getInitials(auth.user.displayName)}
+                    open={openShellMenu === "account"}
+                    onOpenChange={(open) => setOpenShellMenu(open ? "account" : null)}
+                    onOpenSection={(section) => {
+                      setAccountSection(section);
+                      setView("account");
+                    }}
+                    onLogout={() => void handleLogout()}
+                  />
+                </div>
               ) : (
                 <div className="flex gap-2">
+                  <ThemeSwitcher
+                    theme={theme}
+                    open={openShellMenu === "theme"}
+                    onChange={setTheme}
+                    onOpenChange={(open) => setOpenShellMenu(open ? "theme" : null)}
+                  />
                   <button
                     className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50"
                     onClick={() => setView("login")}

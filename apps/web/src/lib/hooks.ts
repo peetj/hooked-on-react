@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import type { QuizStream, SessionMode } from "@react-quiz-1000/shared";
 import type { AuthState, ThemeName } from "./types";
 
@@ -70,4 +71,58 @@ export function useSessionMode(): [SessionMode, (next: SessionMode) => void] {
   };
 
   return [mode, set];
+}
+
+export function useExclusiveDetailsMenu(ref: RefObject<HTMLDetailsElement | null>) {
+  const menuIdRef = useRef(`shell-menu-${Math.random().toString(36).slice(2)}`);
+
+  useEffect(() => {
+    const menu = ref.current;
+    if (!menu) return;
+
+    const closeMenu = () => {
+      if (!menu.open) return;
+      menu.removeAttribute("open");
+    };
+
+    const onToggle = () => {
+      if (!menu.open) return;
+      window.dispatchEvent(
+        new CustomEvent("shell-menu-open", {
+          detail: { id: menuIdRef.current }
+        })
+      );
+    };
+
+    const onOtherMenuOpen = (event: Event) => {
+      const detail = (event as CustomEvent<{ id?: string }>).detail;
+      if (detail?.id === menuIdRef.current) return;
+      closeMenu();
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menu.open) return;
+      if (!(event.target instanceof Node) || menu.contains(event.target)) return;
+      closeMenu();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !menu.open) return;
+      event.preventDefault();
+      closeMenu();
+      menu.querySelector<HTMLElement>("summary")?.focus();
+    };
+
+    menu.addEventListener("toggle", onToggle);
+    window.addEventListener("shell-menu-open", onOtherMenuOpen as EventListener);
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      menu.removeEventListener("toggle", onToggle);
+      window.removeEventListener("shell-menu-open", onOtherMenuOpen as EventListener);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [ref]);
 }

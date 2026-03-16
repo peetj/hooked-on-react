@@ -81,18 +81,18 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
         aria-controls="feedback-panel"
         onClick={() => setIsOpen((open) => !open)}
         className={cx(
-          "fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-2xl border border-r-0 border-amber-300 bg-gradient-to-b from-amber-300 via-orange-300 to-rose-300 px-3 py-4 text-[11px] font-black uppercase tracking-[0.35em] text-slate-900 shadow-[0_16px_40px_rgba(15,23,42,0.18)]",
-          props.reduceMotion ? "" : "transition-transform duration-300 hover:-translate-x-1"
+          "feedback-toggle",
+          props.reduceMotion ? "" : "feedback-toggle-animated"
         )}
       >
-        <span className="block [writing-mode:vertical-rl]">Feedback</span>
+        <span className="feedback-toggle-copy">Feedback</span>
       </button>
 
       {isOpen && (
         <button
           type="button"
           aria-label="Close feedback panel"
-          className="fixed inset-0 z-30 bg-slate-950/20 backdrop-blur-[1px] md:hidden"
+          className="feedback-backdrop"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -100,21 +100,21 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
       <aside
         id="feedback-panel"
         className={cx(
-          "fixed right-0 top-0 z-40 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white/95 shadow-2xl backdrop-blur",
+          "feedback-panel",
           props.reduceMotion ? "" : "transition-transform duration-300 ease-out",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          isOpen ? "feedback-panel-open" : "feedback-panel-closed"
         )}
       >
-        <div className="border-b border-slate-200 bg-gradient-to-br from-amber-100 via-white to-rose-100 px-6 py-5">
+        <div className="feedback-panel-head">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-700">Talk To Us</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">Feedback</h2>
-              <p className="mt-2 text-sm text-slate-600">Tell us what is confusing, broken, slow, or unexpectedly good.</p>
+              <div className="feedback-panel-kicker">Talk To Us</div>
+              <h2 className="feedback-panel-title">Feedback</h2>
+              <p className="feedback-panel-copy">Tell us what is confusing, broken, slow, or unexpectedly good.</p>
             </div>
             <button
               type="button"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              className="feedback-close"
               onClick={() => setIsOpen(false)}
             >
               Close
@@ -122,53 +122,53 @@ export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotio
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="grid gap-4">
-            <label className="grid gap-1 text-sm">
-              <span className="font-medium text-slate-700">Your email</span>
+        <div className="feedback-panel-body">
+          <div className="feedback-form-grid">
+            <label className="feedback-field">
+              <span className="feedback-field-label">Your email</span>
               <input
                 type="email"
                 value={contactEmail}
                 onChange={(event) => setContactEmail(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-amber-300"
+                className="feedback-input"
                 placeholder="you@example.com"
               />
             </label>
 
-            <label className="grid gap-1 text-sm">
-              <span className="font-medium text-slate-700">Name</span>
+            <label className="feedback-field">
+              <span className="feedback-field-label">Name</span>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-amber-300"
+                className="feedback-input"
                 placeholder="Optional"
               />
             </label>
 
-            <label className="grid gap-1 text-sm">
-              <span className="font-medium text-slate-700">Message</span>
+            <label className="feedback-field">
+              <span className="feedback-field-label">Message</span>
               <textarea
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 rows={8}
-                className="min-h-44 rounded-3xl border border-slate-200 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-amber-300"
+                className="feedback-input feedback-textarea"
                 placeholder="What should change?"
               />
             </label>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+            <div className="feedback-context">
               Context sent with your note: current page `{props.view}`{props.user ? ` and signed-in user ${props.user.displayName}` : ""}.
             </div>
 
-            {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-            {success && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+            {error && <div className="feedback-message feedback-message-error">{error}</div>}
+            {success && <div className="feedback-message feedback-message-success">{success}</div>}
           </div>
         </div>
 
-        <div className="border-t border-slate-200 px-6 py-4">
+        <div className="feedback-panel-foot">
           <button
             type="button"
-            className="w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="feedback-submit"
             disabled={busy || contactEmail.trim().length === 0 || message.trim().length < 10}
             onClick={() => void submitFeedback()}
           >

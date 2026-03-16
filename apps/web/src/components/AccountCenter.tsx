@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { cx } from "../lib/api";
 import type { QuizStream, SessionMode } from "@react-quiz-1000/shared";
 import type { AuthState, ThemeName, ActiveRun, AccountSection } from "../lib/types";
@@ -12,30 +13,87 @@ function InfoCard(props: { label: string; value: string }) {
   );
 }
 
-export function AccountMenu(props: { initials: string; onOpenSection: (section: AccountSection) => void; onLogout: () => void }) {
+export function AccountMenu(props: {
+  initials: string;
+  onOpenSection: (section: AccountSection) => void;
+  onLogout: () => void;
+  embedded?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { embedded, initials, onLogout, onOpenChange, onOpenSection, open } = props;
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: MouseEvent | PointerEvent) => {
+      if (!(event.target instanceof Node) || menuRef.current?.contains(event.target)) return;
+      onOpenChange(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onOpenChange(false);
+      triggerRef.current?.focus();
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onOpenChange, open]);
+
   return (
-    <details className="account-menu">
-      <summary className="account-menu-trigger">
-        <span className="player-avatar">{props.initials}</span>
-      </summary>
-      <div className="account-menu-panel">
-        <button className="account-menu-item" onClick={() => props.onOpenSection("profile")}>
+    <div ref={menuRef} className={cx("account-menu", embedded && "account-menu-embedded", open && "account-menu-open")}>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={cx("account-menu-trigger", embedded && "account-menu-trigger-embedded")}
+        aria-label="Profile"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+      >
+        <span className="player-avatar">{initials}</span>
+      </button>
+      <div className="account-menu-panel" hidden={!open} role="menu">
+        <button className="account-menu-item" onClick={() => {
+          onOpenChange(false);
+          onOpenSection("profile");
+        }}>
           Profile
         </button>
-        <button className="account-menu-item" onClick={() => props.onOpenSection("account")}>
+        <button className="account-menu-item" onClick={() => {
+          onOpenChange(false);
+          onOpenSection("account");
+        }}>
           Account settings
         </button>
-        <button className="account-menu-item" onClick={() => props.onOpenSection("security")}>
+        <button className="account-menu-item" onClick={() => {
+          onOpenChange(false);
+          onOpenSection("security");
+        }}>
           Security
         </button>
-        <button className="account-menu-item" onClick={() => props.onOpenSection("preferences")}>
+        <button className="account-menu-item" onClick={() => {
+          onOpenChange(false);
+          onOpenSection("preferences");
+        }}>
           Preferences
         </button>
-        <button className="account-menu-item account-menu-item-danger" onClick={props.onLogout}>
+        <button className="account-menu-item account-menu-item-danger" onClick={() => {
+          onOpenChange(false);
+          onLogout();
+        }}>
           Sign out
         </button>
       </div>
-    </details>
+    </div>
   );
 }
 

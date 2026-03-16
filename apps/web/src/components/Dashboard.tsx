@@ -29,6 +29,7 @@ export function Dashboard(props: {
   return (
     <div className={cx("arena-dashboard-stage", `arena-dashboard-stage-${props.theme}`)}>
       <ReactQuestArenaDashboard
+        theme={props.theme}
         selectedStream={props.selectedStream}
         sessionMode={props.sessionMode}
         busy={busy}
