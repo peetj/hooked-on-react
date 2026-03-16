@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { QuizStream } from "@react-quiz-1000/shared";
 import { ENCOURAGEMENT_TEMPLATES } from "../lib/social";
 import { api, cx } from "../lib/api";
@@ -119,19 +119,19 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="quest-panel rounded-3xl border p-6 shadow-sm">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-500">Leaderboard</div>
-          <div className="text-2xl font-bold text-slate-900">{getStreamLabel(props.selectedStream)} ladder</div>
-          <div className="mt-1 text-sm text-slate-600">Each stream keeps its own race, so fixed tiers stay fair.</div>
+          <div className="quest-panel-kicker text-sm font-semibold">Leaderboard</div>
+          <div className="text-2xl font-bold" style={{ color: "var(--text-strong)" }}>{getStreamLabel(props.selectedStream)} ladder</div>
+          <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>Each stream keeps its own race, so fixed tiers stay fair.</div>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <label className="grid gap-1 text-sm">
-            <span className="text-slate-600">Leaderboard stream</span>
+            <span style={{ color: "var(--text-muted)" }}>Leaderboard stream</span>
             <select
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+              className="quest-input rounded-xl px-3 py-2 text-sm outline-none"
               value={props.selectedStream}
               onChange={(e) => props.onSelectStream(e.target.value as QuizStream)}
             >
@@ -145,9 +145,9 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
           </label>
 
           <label className="grid gap-1 text-sm">
-            <span className="text-slate-600">Encouragement template</span>
+            <span style={{ color: "var(--text-muted)" }}>Encouragement template</span>
             <select
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+              className="quest-input rounded-xl px-3 py-2 text-sm outline-none"
               value={template}
               onChange={(e) => setTemplate(e.target.value as (typeof ENCOURAGEMENT_TEMPLATES)[number])}
             >
@@ -161,11 +161,11 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
         </div>
       </div>
 
-      {err && <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
+      {err && <div className="mt-4 rounded-xl px-3 py-2 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger-text)" }}>{err}</div>}
 
       <div className="mt-5 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="text-xs uppercase tracking-wide text-slate-500">
+          <thead className="quest-table-head text-xs uppercase tracking-wide">
             <tr>
               <th className="py-2 pr-4">#</th>
               <th className="py-2 pr-4">Player</th>
@@ -180,24 +180,24 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={r.userId} className={cx("border-t border-slate-100", i % 2 ? "bg-slate-50/60" : "")}>
-                <td className="py-2 pr-4 font-mono text-slate-600">{i + 1}</td>
-                <td className="py-2 pr-4 font-semibold text-slate-900">{r.displayName}</td>
+              <tr key={r.userId} className={cx("quest-table-row", i % 2 ? "quest-table-row-alt" : "")}>
+                <td className="py-2 pr-4 font-mono" style={{ color: "var(--text-faint)" }}>{i + 1}</td>
+                <td className="py-2 pr-4 font-semibold" style={{ color: "var(--text-strong)" }}>{r.displayName}</td>
                 <td className="py-2 pr-4 font-mono">{r.rating.toFixed(1)}</td>
                 <td className="py-2 pr-4">{Math.round(r.accuracy * 100)}%</td>
                 <td className="py-2 pr-4">{r.bestStreak}</td>
                 <td className="py-2 pr-4">{Math.round(r.avgTimeMs / 1000)}s</td>
                 <td className="py-2 pr-4">
                   {mutual.has(r.userId) ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Friends</span>
+                    <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--success-soft)", color: "var(--success-text)" }}>Friends</span>
                   ) : (
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">-</span>
+                    <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "var(--surface-alt)", color: "var(--text-faint)" }}>-</span>
                   )}
                 </td>
                 <td className="py-2 pr-4">
                   {following.has(r.userId) ? (
                     <button
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-50"
+                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                       disabled={!props.token}
                       onClick={() => void unfollow(r.userId)}
                     >
@@ -205,7 +205,7 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
                     </button>
                   ) : (
                     <button
-                      className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                      className="quest-btn-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
                       disabled={!props.token}
                       onClick={() => void follow(r.userId)}
                     >
@@ -216,7 +216,7 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
                 <td className="py-2 pr-4">
                   <div className="flex flex-wrap gap-2">
                     <button
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-50"
+                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                       disabled={!props.token || !mutual.has(r.userId) || sendingTo === r.userId + ":followers"}
                       onClick={() => void encourage(r.userId, "followers")}
                       title={mutual.has(r.userId) ? "" : "Mutual follow required"}
@@ -224,14 +224,14 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
                       Followers
                     </button>
                     <button
-                      className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                      className="quest-btn-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-50"
                       disabled={!props.token || sendingTo === r.userId + ":anyone"}
                       onClick={() => void encourage(r.userId, "anyone")}
                     >
                       Anyone
                     </button>
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-400">Anyone lane is throttled hard. Friends lane requires mutual follow.</div>
+                  <div className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>Anyone lane is throttled hard. Friends lane requires mutual follow.</div>
                 </td>
               </tr>
             ))}
@@ -239,7 +239,7 @@ export function Leaderboard(props: { token: string | null; selectedStream: QuizS
         </table>
       </div>
 
-      <div className="mt-4 text-xs text-slate-500">
+      <div className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>
         Prescriptive social: templates only, positive only. Mods can shadowban cheaters/spammers from appearing here.
       </div>
     </div>
@@ -258,29 +258,29 @@ export function Social(props: { token: string | null }) {
   }, [props.token]);
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">Social</div>
-      <div className="text-2xl font-bold text-slate-900">Encouragement inbox</div>
-      <div className="mt-1 text-sm text-slate-600">No comments, no negativity - only preset encouragements.</div>
+    <div className="quest-panel rounded-3xl border p-6 shadow-sm">
+      <div className="quest-panel-kicker text-sm font-semibold">Social</div>
+      <div className="text-2xl font-bold" style={{ color: "var(--text-strong)" }}>Encouragement inbox</div>
+      <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>No comments, no negativity - only preset encouragements.</div>
 
-      {err && <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
+      {err && <div className="mt-4 rounded-xl px-3 py-2 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger-text)" }}>{err}</div>}
 
       <div className="mt-4 grid gap-2">
-        {feed.length === 0 && <div className="text-sm text-slate-500">No encouragement yet. Go earn some.</div>}
+        {feed.length === 0 && <div className="text-sm" style={{ color: "var(--text-faint)" }}>No encouragement yet. Go earn some.</div>}
         {feed.map((x) => (
-          <div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div key={x.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: "var(--line)", background: "var(--surface-alt)" }}>
             <div>
-              <div className="text-sm font-semibold text-slate-900">{x.template}</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-sm font-semibold" style={{ color: "var(--text-strong)" }}>{x.template}</div>
+              <div className="text-xs" style={{ color: "var(--text-faint)" }}>
                 from <span className="font-medium">{x.from.displayName}</span> - {x.lane}
               </div>
             </div>
-            <div className="text-xs text-slate-400">{new Date(x.createdAt).toLocaleString()}</div>
+            <div className="text-xs" style={{ color: "var(--text-faint)" }}>{new Date(x.createdAt).toLocaleString()}</div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4 text-xs text-slate-500">Tip: use the Leaderboard tab to send encouragements.</div>
+      <div className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>Tip: use the Leaderboard tab to send encouragements.</div>
     </div>
   );
 }
@@ -317,28 +317,28 @@ export function Admin(props: { token: string | null }) {
   }
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="text-sm font-semibold text-slate-500">Admin / Moderator</div>
-      <div className="text-2xl font-bold text-slate-900">Control room</div>
-      <div className="mt-1 text-sm text-slate-600">Promote mods, ban, shadowban, mute social spam.</div>
+    <div className="quest-panel rounded-3xl border p-6 shadow-sm">
+      <div className="quest-panel-kicker text-sm font-semibold">Admin / Moderator</div>
+      <div className="text-2xl font-bold" style={{ color: "var(--text-strong)" }}>Control room</div>
+      <div className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>Promote mods, ban, shadowban, mute social spam.</div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <input
-          className="min-w-[260px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-300"
+          className="quest-input min-w-[260px] flex-1 rounded-xl px-3 py-2 text-sm outline-none"
           placeholder="Search by email or display name"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800" onClick={() => void search()}>
+        <button className="quest-btn-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => void search()}>
           Search
         </button>
       </div>
 
-      {err && <div className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
+      {err && <div className="mt-4 rounded-xl px-3 py-2 text-sm" style={{ background: "var(--danger-soft)", color: "var(--danger-text)" }}>{err}</div>}
 
       <div className="mt-4 overflow-x-auto">
         <table className="min-w-full text-left text-sm">
-          <thead className="text-xs uppercase tracking-wide text-slate-500">
+          <thead className="quest-table-head text-xs uppercase tracking-wide">
             <tr>
               <th className="py-2 pr-4">Name</th>
               <th className="py-2 pr-4">Email</th>
@@ -349,11 +349,11 @@ export function Admin(props: { token: string | null }) {
           </thead>
           <tbody>
             {rows.map((u) => (
-              <tr key={u.id} className="border-t border-slate-100">
-                <td className="py-2 pr-4 font-semibold text-slate-900">{u.displayName}</td>
+              <tr key={u.id} className="quest-table-row">
+                <td className="py-2 pr-4 font-semibold" style={{ color: "var(--text-strong)" }}>{u.displayName}</td>
                 <td className="py-2 pr-4 font-mono text-xs">{u.email}</td>
                 <td className="py-2 pr-4">{u.role}</td>
-                <td className="py-2 pr-4 text-xs text-slate-600">
+                <td className="py-2 pr-4 text-xs" style={{ color: "var(--text-muted)" }}>
                   {u.banned ? "BANNED " : ""}
                   {u.shadowbanned ? "SHADOW " : ""}
                   {u.mutedSocialUntil ? "MUTED" : ""}
@@ -361,7 +361,7 @@ export function Admin(props: { token: string | null }) {
                 <td className="py-2 pr-4">
                   <div className="flex flex-wrap gap-2">
                     <button
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-50"
+                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                       disabled={!props.token || busyId === u.id}
                       onClick={() => void patch(u.id, { role: u.role === "mod" ? "user" : "mod" })}
                     >
@@ -370,7 +370,7 @@ export function Admin(props: { token: string | null }) {
                     <button
                       className={cx(
                         "rounded-xl px-3 py-2 text-xs disabled:opacity-50",
-                        u.banned ? "bg-rose-600 text-white hover:bg-rose-500" : "border border-slate-200 bg-white hover:bg-slate-50"
+                        u.banned ? "quest-btn-danger" : "quest-btn-secondary"
                       )}
                       disabled={!props.token || busyId === u.id}
                       onClick={() => void patch(u.id, { banned: !u.banned })}
@@ -380,7 +380,7 @@ export function Admin(props: { token: string | null }) {
                     <button
                       className={cx(
                         "rounded-xl px-3 py-2 text-xs disabled:opacity-50",
-                        u.shadowbanned ? "bg-amber-600 text-white hover:bg-amber-500" : "border border-slate-200 bg-white hover:bg-slate-50"
+                        u.shadowbanned ? "quest-btn-warning" : "quest-btn-secondary"
                       )}
                       disabled={!props.token || busyId === u.id}
                       onClick={() => void patch(u.id, { shadowbanned: !u.shadowbanned })}
@@ -388,14 +388,14 @@ export function Admin(props: { token: string | null }) {
                       {u.shadowbanned ? "Unshadow" : "Shadowban"}
                     </button>
                     <button
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-50"
+                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                       disabled={!props.token || busyId === u.id}
                       onClick={() => void patch(u.id, { mutedSocialMinutes: 60 })}
                     >
                       Mute 60m
                     </button>
                     <button
-                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs hover:bg-slate-50 disabled:opacity-50"
+                      className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                       disabled={!props.token || busyId === u.id}
                       onClick={() => void patch(u.id, { mutedSocialMinutes: 0 })}
                     >
@@ -409,10 +409,9 @@ export function Admin(props: { token: string | null }) {
         </table>
       </div>
 
-      <div className="mt-4 text-xs text-slate-500">
+      <div className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>
         Note: PATCH actions require <span className="font-mono">role=admin</span>. Mods can still view/search.
       </div>
     </div>
   );
 }
-

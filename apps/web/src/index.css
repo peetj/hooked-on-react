@@ -2659,6 +2659,53 @@ body::after {
   background: var(--button-dark-hover);
 }
 
+.quest-btn-danger {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border: 1px solid transparent;
+  transition: filter 0.15s;
+}
+.quest-btn-danger:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.quest-btn-warning {
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  border: 1px solid transparent;
+  transition: filter 0.15s;
+}
+.quest-btn-warning:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.quest-panel {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.quest-panel-kicker {
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.quest-table-head {
+  color: var(--text-faint);
+}
+
+.quest-table-row {
+  border-top: 1px solid var(--line);
+  color: var(--text-main);
+}
+
+.quest-table-row-alt {
+  background: var(--surface-alt);
+}
+
 @keyframes questFloat {
   0%,
   100% {

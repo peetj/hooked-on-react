@@ -750,7 +750,7 @@ export default function App() {
           </div>
         )}
 
-        <footer className="mt-12 flex flex-wrap items-center justify-center gap-3 text-center text-xs text-slate-500">
+        <footer className="mt-12 flex flex-wrap items-center justify-center gap-3 text-center text-xs" style={{ color: "var(--text-faint)" }}>
           <span>
             API: <span className="font-mono">{API_URL}</span>
           </span>
