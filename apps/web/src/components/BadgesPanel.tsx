@@ -1,20 +1,6 @@
 import { useEffect, useState } from "react";
 import type { BadgeDef } from "../lib/badges";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
-
-async function api<T>(path: string, opts: { token?: string | null; method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: opts.method ?? (opts.body ? "POST" : "GET"),
-    headers: {
-      "content-type": "application/json",
-      ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {})
-    },
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return (await res.json()) as T;
-}
+import { api } from "../lib/api";
 
 export function BadgesPanel(props: { token: string | null }) {
   const [unlocked, setUnlocked] = useState<Array<BadgeDef & { unlockedAt?: string }>>([]);

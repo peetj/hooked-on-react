@@ -1,24 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import type { QuizStream } from "@react-quiz-1000/shared";
 import { ENCOURAGEMENT_TEMPLATES } from "../lib/social";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
-
-async function api<T>(path: string, opts: { token?: string | null; method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: opts.method ?? (opts.body ? "POST" : "GET"),
-    headers: {
-      "content-type": "application/json",
-      ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {})
-    },
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return (await res.json()) as T;
-}
+import { api, cx } from "../lib/api";
 
 type LeaderboardRow = {
   userId: string;
@@ -66,9 +49,7 @@ type AdminUserRow = {
   createdAt: string;
 };
 
-function cx(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
+
 
 export function Leaderboard(props: { token: string | null; selectedStream: QuizStream; onSelectStream: (next: QuizStream) => void }) {
   const [rows, setRows] = useState<LeaderboardRow[]>([]);

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8787";
+import { cx, API_URL } from "../lib/api";
 
 type AuthUser = {
   id: string;
@@ -8,10 +7,6 @@ type AuthUser = {
   displayName: string;
   role?: "user" | "mod" | "admin";
 } | null;
-
-function cx(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
 
 export function FeedbackPanel(props: { user: AuthUser; view: string; reduceMotion: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
