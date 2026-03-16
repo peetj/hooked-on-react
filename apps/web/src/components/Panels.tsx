@@ -285,18 +285,24 @@ export function Social(props: { token: string | null }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export function Admin(props: { token: string | null }) {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<AdminUserRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function search() {
+  async function search(pageNum = 0) {
     if (!props.token) return;
     setErr(null);
     try {
-      const r = await api<{ users: AdminUserRow[] }>(`/admin/users?q=${encodeURIComponent(q)}&limit=20`, { token: props.token });
+      const r = await api<{ users: AdminUserRow[]; total: number }>(`/admin/users?q=${encodeURIComponent(q)}&limit=${PAGE_SIZE}&skip=${pageNum * PAGE_SIZE}`, { token: props.token });
       setRows(r.users);
+      setTotal(r.total);
+      setPage(pageNum);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "failed");
     }
@@ -308,13 +314,15 @@ export function Admin(props: { token: string | null }) {
     setErr(null);
     try {
       await api<{ ok: true }>(`/admin/users/${userId}`, { token: props.token, method: "PATCH", body });
-      await search();
+      await search(page);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "failed");
     } finally {
       setBusyId(null);
     }
   }
+
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="quest-panel rounded-3xl border p-6 shadow-sm">
@@ -328,8 +336,9 @@ export function Admin(props: { token: string | null }) {
           placeholder="Search by email or display name"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") void search(0); }}
         />
-        <button className="quest-btn-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => void search()}>
+        <button className="quest-btn-primary rounded-xl px-4 py-2 text-sm font-semibold" onClick={() => void search(0)}>
           Search
         </button>
       </div>
@@ -408,6 +417,28 @@ export function Admin(props: { token: string | null }) {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
+            disabled={page === 0}
+            onClick={() => void search(page - 1)}
+          >
+            Previous
+          </button>
+          <span className="text-sm" style={{ color: "var(--text-muted)" }}>
+            Page {page + 1} of {totalPages} ({total} users)
+          </span>
+          <button
+            className="quest-btn-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
+            disabled={page >= totalPages - 1}
+            onClick={() => void search(page + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       <div className="mt-4 text-xs" style={{ color: "var(--text-faint)" }}>
         Note: PATCH actions require <span className="font-mono">role=admin</span>. Mods can still view/search.
