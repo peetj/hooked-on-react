@@ -135,11 +135,21 @@ export function QuizStatCard(props: { label: string; value: string; tone: "accen
   );
 }
 
-export function PixelField(props: { reduceMotion: boolean }) {
+import type { ThemeName } from "../lib/types";
+
+const PIXEL_PALETTES: Record<ThemeName, string[]> = {
+  midnight: ["#57d0ff", "#90e3ff", "#ab70ff", "#8f72ff", "#c8f0ff"],
+  ember: ["#ff6948", "#ff8d67", "#ffae40", "#c087ff", "#ff5b3a"],
+  nova: ["#ff66b9", "#ff8dcb", "#ff9268", "#c087ff", "#ffaadd"],
+  sunset: ["#ff8f5a", "#ffb27c", "#ffcd6e", "#c087ff", "#ffa04a"],
+  circuit: ["#3ae0ab", "#72f0c2", "#5ef2ff", "#8f72ff", "#baffe0"],
+};
+
+export function PixelField(props: { reduceMotion: boolean; theme?: ThemeName }) {
   const pixels = useMemo(
     () =>
       Array.from({ length: props.reduceMotion ? 12 : 28 }, (_, index) => {
-        const colors = ["#ffb25b", "#ff7b52", "#ffdd8f", "#c087ff", "#8f72ff"];
+        const colors = PIXEL_PALETTES[props.theme ?? "midnight"];
         const color = colors[index % colors.length];
         return {
           id: index,
@@ -152,7 +162,7 @@ export function PixelField(props: { reduceMotion: boolean }) {
           opacity: 0.35 + Math.random() * 0.45
         };
       }),
-    [props.reduceMotion]
+    [props.reduceMotion, props.theme]
   );
 
   return (

@@ -544,7 +544,7 @@ export default function App() {
           <div className="quiz-stage-shell">
             <div className={cx("arena-board quiz-arena-board", `arena-board-${theme}`)}>
               <div className="arena-board-backdrop" />
-              <PixelField reduceMotion={reduceMotion} />
+              <PixelField reduceMotion={reduceMotion} theme={theme} />
               <div className="section-banner">
                 <span className="section-banner-line" />
                 <h2 className="section-banner-title">{activeMode === "practice" ? "Learn Arena" : "Live Challenge"}</h2>
