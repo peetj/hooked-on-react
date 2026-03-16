@@ -7,7 +7,7 @@ function InfoCard(props: { label: string; value: string }) {
   return (
     <div className="account-info-card">
       <div className="dashboard-select-label">{props.label}</div>
-      <div className="mt-2 text-sm font-semibold text-slate-900">{props.value}</div>
+      <div className="mt-2 text-sm font-semibold" style={{ color: "var(--text-strong)" }}>{props.value}</div>
     </div>
   );
 }
@@ -55,12 +55,12 @@ export function AccountCenter(props: {
 }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <aside className="account-sidebar rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <aside className="account-sidebar quest-panel rounded-3xl border p-4 shadow-sm">
         <div className="account-sidebar-head">
           <div className="player-avatar">{getInitials(props.user.displayName)}</div>
           <div>
-            <div className="text-sm font-semibold text-slate-900">{props.user.displayName}</div>
-            <div className="text-xs text-slate-500">{props.user.email}</div>
+            <div className="text-sm font-semibold" style={{ color: "var(--text-strong)" }}>{props.user.displayName}</div>
+            <div className="text-xs" style={{ color: "var(--text-faint)" }}>{props.user.email}</div>
           </div>
         </div>
         <div className="mt-4 grid gap-2">
@@ -83,7 +83,7 @@ export function AccountCenter(props: {
 
       <div className="grid gap-4">
         {props.section === "profile" && (
-          <section className="account-panel rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="account-panel quest-panel rounded-3xl border p-6 shadow-sm">
             <div className="account-panel-kicker">Profile</div>
             <div className="account-panel-title">Your public player identity</div>
             <div className="account-panel-copy">This is the identity shown on the leaderboard, badges, and social encouragement lanes.</div>
@@ -97,7 +97,7 @@ export function AccountCenter(props: {
         )}
 
         {props.section === "account" && (
-          <section className="account-panel rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="account-panel quest-panel rounded-3xl border p-6 shadow-sm">
             <div className="account-panel-kicker">Account settings</div>
             <div className="account-panel-title">How this account behaves in the app</div>
             <div className="account-panel-copy">These controls are local to this device for now, but they make the menu actually useful instead of being a disguised sign-out button.</div>
@@ -119,7 +119,7 @@ export function AccountCenter(props: {
         )}
 
         {props.section === "security" && (
-          <section className="account-panel rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="account-panel quest-panel rounded-3xl border p-6 shadow-sm">
             <div className="account-panel-kicker">Security</div>
             <div className="account-panel-title">Protect the account and keep progress safe</div>
             <div className="account-panel-copy">Session recovery is now built in. If you sign out during a live question, the app will try to pause the run so you can return later.</div>
@@ -133,7 +133,7 @@ export function AccountCenter(props: {
         )}
 
         {props.section === "preferences" && (
-          <section className="account-panel rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="account-panel quest-panel rounded-3xl border p-6 shadow-sm">
             <div className="account-panel-kicker">Preferences</div>
             <div className="account-panel-title">Tune the arena to your taste</div>
             <div className="account-panel-copy">These settings are live and persist in local storage on this browser.</div>
@@ -175,7 +175,7 @@ export function AccountCenter(props: {
               <label className="dashboard-select-card account-toggle-card">
                 <span className="dashboard-select-label">Motion</span>
                 <span className="account-toggle-row">
-                  <span className="text-sm text-slate-700">Reduce motion</span>
+                  <span className="text-sm" style={{ color: "var(--text-muted)" }}>Reduce motion</span>
                   <input type="checkbox" checked={props.reduceMotion} onChange={(event) => props.onReduceMotionChange(event.target.checked)} />
                 </span>
                 <span className="dashboard-select-help">Tones down animated effects and celebratory motion.</span>
