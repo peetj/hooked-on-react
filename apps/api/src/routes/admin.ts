@@ -12,6 +12,7 @@ adminRouter.use(requireRole("mod"));
 adminRouter.get("/users", async (req, res) => {
   const q = String(req.query.q ?? "").trim();
   const limit = Math.max(1, Math.min(50, Number(req.query.limit ?? 20)));
+  const skip = Math.max(0, Number(req.query.skip ?? 0));
 
   const filter = q
     ? {
@@ -19,7 +20,11 @@ adminRouter.get("/users", async (req, res) => {
       }
     : {};
 
-  const users = await User.find(filter).sort({ createdAt: -1 }).limit(limit).lean();
+  const [users, total] = await Promise.all([
+    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    User.countDocuments(filter)
+  ]);
+
   return res.json({
     users: users.map((u: any) => ({
       id: u._id.toString(),
@@ -30,7 +35,10 @@ adminRouter.get("/users", async (req, res) => {
       shadowbanned: u.shadowbanned,
       mutedSocialUntil: u.mutedSocialUntil ?? null,
       createdAt: u.createdAt
-    }))
+    })),
+    total,
+    skip,
+    limit
   });
 });
 
