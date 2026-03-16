@@ -9,12 +9,53 @@ import { Dashboard } from "./components/Dashboard";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { AccountMenu, AccountCenter } from "./components/AccountCenter";
 import { AuthCard } from "./components/AuthCard";
-import { PixelField, LearnPlayground, QuizStatCard } from "./components/QuizArena";
+import { PixelField, LearnPlayground } from "./components/QuizArena";
+import posterLogo from "./assets/arena/nexgen-logo-poster.png";
 import { api, cx, API_URL } from "./lib/api";
 import { useAuth, useTheme, usePreferredStream, useSessionMode } from "./lib/hooks";
 import { toErrorMessage, getInitials, getTopicLabel, getStreamLabel, getStreamDescription, getQuestionTypeLabel, getDifficultyLabel, getModeLabel, getTimerTone, formatCountdown } from "./lib/helpers";
 import type { View, AccountSection, ActiveRun } from "./lib/types";
 import { createQuizSound } from "./lib/quiz-sound";
+
+function QuizActionGlyph(props: { name: "clear" | "dashboard" | "next" | "pause" | "retry" }) {
+  if (props.name === "clear") {
+    return (
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M5 5l10 10M15 5L5 15" />
+      </svg>
+    );
+  }
+
+  if (props.name === "dashboard") {
+    return (
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M3 3h6v6H3zM11 3h6v4h-6zM11 9h6v8h-6zM3 11h6v6H3z" />
+      </svg>
+    );
+  }
+
+  if (props.name === "pause") {
+    return (
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M7 4v12M13 4v12" />
+      </svg>
+    );
+  }
+
+  if (props.name === "retry") {
+    return (
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M5 10a5 5 0 119 3M5 10V5m0 5h5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M4 10h10M10 5l5 5-5 5" />
+    </svg>
+  );
+}
 
 export default function App() {
   const [view, setView] = useState<View>("welcome");
@@ -48,7 +89,6 @@ export default function App() {
   const displayWrong = feedback?.wrongCount ?? served?.wrongCount ?? activeRun?.wrongCount ?? 0;
   const displayStreak = feedback?.newStreak ?? served?.streak ?? activeRun?.streak ?? 0;
   const timerTone = served ? getTimerTone(timeLimitMs > 0 ? timeLeftMs / timeLimitMs : 0) : "safe";
-  const activeMode = served?.mode ?? activeRun?.mode ?? sessionMode;
   const showTimer = Boolean(served && served.mode === "ranked" && served.timeLimitSec > 0);
 
   useEffect(() => {
@@ -317,7 +357,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeftMs, served, feedback, timerArmed]);
 
+  const quizHeaderText = served
+    ? `${getModeLabel(served.mode)} - ${getStreamLabel(served.stream)} - ${getTopicLabel(served.question.topic)}`
+    : activeRun
+      ? `${getModeLabel(activeRun.mode)} - ${getStreamLabel(activeRun.stream)} - ${activeRun.paused ? "Paused run" : "Live run"}`
+      : `${getModeLabel(sessionMode)} - ${getStreamLabel(preferredStream)} - Ready to play`;
   const immersiveMode = (view === "dashboard" || view === "quiz") && !!auth.user;
+  const quizRibbonText = quizHeaderText;
 
   return (
     <div className={`theme-shell theme-${theme} min-h-full`}>
@@ -552,32 +598,33 @@ export default function App() {
           <div className="quiz-stage-shell">
             <div className={cx("arena-board quiz-arena-board", `arena-board-${theme}`)}>
               <div className="arena-board-backdrop" />
-              <PixelField reduceMotion={reduceMotion} theme={theme} />
-              <div className="section-banner">
-                <span className="section-banner-line" />
-                <h2 className="section-banner-title">{activeMode === "practice" ? "Learn Arena" : "Live Challenge"}</h2>
-                <span className="section-banner-line" />
+              <PixelField reduceMotion={reduceMotion} theme="midnight" />
+              <div className="quiz-brand-hero">
+                <div className="quiz-logo-wrap" aria-hidden="true">
+                  <img className="quiz-logo-image" src={posterLogo} alt="" />
+                </div>
+                <div className="quiz-brand-eyebrow">Nexgen React Arena</div>
+                <h1 className="quiz-brand-title">React Quest Arena</h1>
+                <div className="shell-brand-ribbon quiz-brand-ribbon" title={quizHeaderText} data-raw-ribbon={quizRibbonText}>
+                  {quizHeaderText}
+                </div>
               </div>
 
               {served && (
-                <div className="quiz-hud quiz-surface">
-                  <div className="quiz-hud-top">
-                    <div>
-                      <div className="quiz-kicker">
-                        {getModeLabel(served.mode)} run - {getStreamLabel(served.stream)}
-                      </div>
-                      <div className="quiz-topic-title">{getTopicLabel(served.question.topic)}</div>
-                      <div className="quiz-topic-subtitle">
-                        {getQuestionTypeLabel(served.question.type)} mode - {getStreamDescription(served.stream)}
-                      </div>
-                      <div className="quiz-chip-row">
-                        <span className="quiz-chip">{getModeLabel(served.mode)}</span>
-                        <span className="quiz-chip">{getDifficultyLabel(served.question.difficulty)}</span>
-                        <span className="quiz-chip">{getQuestionTypeLabel(served.question.type)}</span>
-                        <span className="quiz-chip">{showTimer ? `${served.timeLimitSec}s round` : "Clock off"}</span>
-                      </div>
+                <div className="quiz-session-strip">
+                  <div className="quiz-session-copy">
+                    <div className="quiz-kicker">Current challenge</div>
+                    <div className="quiz-topic-title">{getTopicLabel(served.question.topic)}</div>
+                    <div className="quiz-session-summary">{getStreamDescription(served.stream)}</div>
+                    <div className="quiz-overview-meta">
+                      <span>{getModeLabel(served.mode)}</span>
+                      <span>{getDifficultyLabel(served.question.difficulty)}</span>
+                      <span>{getQuestionTypeLabel(served.question.type)}</span>
+                      <span>{showTimer ? `${served.timeLimitSec} second round` : "Clock off"}</span>
                     </div>
+                  </div>
 
+                  <div className="quiz-session-side">
                     {showTimer ? (
                       <div className={cx("timer-pill", `timer-pill-${timerTone}`)}>
                         <span className="timer-pill-label">Time left</span>
@@ -586,17 +633,24 @@ export default function App() {
                     ) : (
                       <div className="timer-pill timer-pill-practice">
                         <span className="timer-pill-label">Run mode</span>
-                        <span className="timer-pill-value">Learn Mode</span>
-                        <span className="timer-pill-note">Clock off, relaxed pace, and a runnable code example after the answer.</span>
+                        <span className="timer-pill-value">Learn pace</span>
                       </div>
                     )}
-                  </div>
 
-                  <div className="quiz-stat-grid">
-                    <QuizStatCard label="Mode" value={getModeLabel(served.mode)} tone="accent" />
-                    <QuizStatCard label="Correct" value={String(displayCorrect)} tone="success" prominent />
-                    <QuizStatCard label="Wrong" value={String(displayWrong)} tone="danger" prominent />
-                    <QuizStatCard label="Streak" value={String(displayStreak)} tone="neutral" />
+                    <div className="quiz-mini-stat-row">
+                      <div className="quiz-mini-stat quiz-mini-stat-success">
+                        <span className="quiz-mini-stat-label">Correct</span>
+                        <span className="quiz-mini-stat-value">{displayCorrect}</span>
+                      </div>
+                      <div className="quiz-mini-stat quiz-mini-stat-danger">
+                        <span className="quiz-mini-stat-label">Wrong</span>
+                        <span className="quiz-mini-stat-value">{displayWrong}</span>
+                      </div>
+                      <div className="quiz-mini-stat quiz-mini-stat-neutral">
+                        <span className="quiz-mini-stat-label">Streak</span>
+                        <span className="quiz-mini-stat-value">{displayStreak}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -605,9 +659,9 @@ export default function App() {
                 <div className="quiz-alert quiz-alert-danger">
                   <div className="quiz-alert-title">Quiz action failed</div>
                   <div className="quiz-alert-copy">{runError}</div>
-                  <div className="quiz-action-row">
+                  <div className="quiz-utility-actions quiz-utility-actions-wrap">
                     <button
-                      className="quiz-action quiz-action-danger"
+                      className="quiz-icon-action quiz-icon-action-accent"
                       disabled={!sessionId || isQuestionLoading}
                       onClick={() => {
                         setServed(null);
@@ -616,10 +670,12 @@ export default function App() {
                         void loadNextQuestion(sessionId ?? undefined).catch(() => undefined);
                       }}
                     >
-                      Retry question
+                      <QuizActionGlyph name="retry" />
+                      <span>Retry</span>
                     </button>
-                    <button className="quiz-action quiz-action-secondary" onClick={() => setView("dashboard")}>
-                      Back to dashboard
+                    <button className="quiz-icon-action" onClick={() => setView("dashboard")}>
+                      <QuizActionGlyph name="dashboard" />
+                      <span>Dashboard</span>
                     </button>
                   </div>
                 </div>
@@ -686,35 +742,39 @@ export default function App() {
                     })}
                   </div>
 
-                  <div className="quiz-action-row">
-                    {!feedback ? (
-                      <>
-                        <button className="quiz-action quiz-action-primary" onClick={() => void submitAnswer()} disabled={selected.length === 0}>
-                          Lock it in
+                  {!feedback ? (
+                    <div className="quiz-action-row">
+                      <button className="quiz-action quiz-action-primary" onClick={() => void submitAnswer()} disabled={selected.length === 0}>
+                        Lock it in
+                      </button>
+                      <div className="quiz-utility-actions">
+                        <button className="quiz-icon-action" onClick={() => setSelected([])}>
+                          <QuizActionGlyph name="clear" />
+                          <span>Clear</span>
                         </button>
-                        <button className="quiz-action quiz-action-secondary" onClick={() => setSelected([])}>
-                          Clear
+                        <button className="quiz-icon-action" disabled={isPausing} onClick={() => void pauseSession()}>
+                          <QuizActionGlyph name="pause" />
+                          <span>{isPausing ? "Pausing" : "Pause"}</span>
                         </button>
-                        <button className="quiz-action quiz-action-ghost" disabled={isPausing} onClick={() => void pauseSession()}>
-                          {isPausing ? "Pausing..." : "Pause and return later"}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className={cx(
-                            "quiz-feedback-banner",
-                            feedback.correct ? "quiz-feedback-banner-success" : "quiz-feedback-banner-fail",
-                            feedback.mode === "practice" && "quiz-feedback-banner-practice"
-                          )}
-                        >
-                          {feedback.correct ? "Correct!" : "Not quite."} Streak {feedback.newStreak}.{" "}
-                          {feedback.mode === "practice"
-                            ? "Learn mode - no leaderboard score."
-                            : `Rating ${feedback.newRating.toFixed(1)} (${feedback.ratingDelta >= 0 ? "+" : ""}${feedback.ratingDelta.toFixed(1)})`}
-                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="quiz-feedback-rail">
+                      <div
+                        className={cx(
+                          "quiz-feedback-banner",
+                          feedback.correct ? "quiz-feedback-banner-success" : "quiz-feedback-banner-fail",
+                          feedback.mode === "practice" && "quiz-feedback-banner-practice"
+                        )}
+                      >
+                        {feedback.correct ? "Correct." : "Not quite."} Streak {feedback.newStreak}.{" "}
+                        {feedback.mode === "practice"
+                          ? "Practice run only."
+                          : `Rating ${feedback.newRating.toFixed(1)} (${feedback.ratingDelta >= 0 ? "+" : ""}${feedback.ratingDelta.toFixed(1)})`}
+                      </div>
+                      <div className="quiz-utility-actions">
                         <button
-                          className="quiz-action quiz-action-primary"
+                          className="quiz-icon-action quiz-icon-action-accent"
                           onClick={async () => {
                             setServed(null);
                             setFeedback(null);
@@ -725,14 +785,16 @@ export default function App() {
                             }
                           }}
                         >
-                          Next question
+                          <QuizActionGlyph name="next" />
+                          <span>Next</span>
                         </button>
-                        <button className="quiz-action quiz-action-secondary" onClick={() => setView("dashboard")}>
-                          Back to dashboard
+                        <button className="quiz-icon-action" onClick={() => setView("dashboard")}>
+                          <QuizActionGlyph name="dashboard" />
+                          <span>Dashboard</span>
                         </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  )}
 
                   {feedback && (
                     <div className="quiz-explanation-panel">
@@ -765,35 +827,33 @@ export default function App() {
                     </div>
                   )}
 
-                  <div className="quiz-tip-note">
-                    {activeMode === "practice"
-                      ? "Learn mode keeps the clock off, opens a runnable example after each answer, and lets you pause or sign out without losing your place."
-                      : "Timed runs keep the clock on and score this stream's leaderboard. You can still pause mid-run and return later."}
-                  </div>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        <footer className="mt-12 flex flex-wrap items-center justify-center gap-3 text-center text-xs" style={{ color: "var(--text-faint)" }}>
-          <span>
-            API: <span className="font-mono">{API_URL}</span>
-          </span>
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={reduceMotion}
-              onChange={(e) => {
-                const v = e.target.checked;
-                setReduceMotion(v);
-                localStorage.setItem("rq_reduce_motion", v ? "1" : "0");
-              }}
-            />
-            Reduce motion
-          </label>
-        </footer>
+        {view !== "quiz" && (
+          <footer className="mt-12 flex flex-wrap items-center justify-center gap-3 text-center text-xs" style={{ color: "var(--text-faint)" }}>
+            <span>
+              API: <span className="font-mono">{API_URL}</span>
+            </span>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={reduceMotion}
+                onChange={(e) => {
+                  const v = e.target.checked;
+                  setReduceMotion(v);
+                  localStorage.setItem("rq_reduce_motion", v ? "1" : "0");
+                }}
+              />
+              Reduce motion
+            </label>
+          </footer>
+        )}
       </main>
     </div>
   );
 }
+
