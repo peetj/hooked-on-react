@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "format": "prettier -w .",
-    "test": "vitest"
+    "test": "vitest --passWithNoTests"
   },
   "devDependencies": {
     "eslint": "^9.39.4",

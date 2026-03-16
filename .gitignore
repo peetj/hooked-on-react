@@ -6,3 +6,4 @@ apps/api/.env
 apps/web/.env
 .DS_Store
 .env
+.claude

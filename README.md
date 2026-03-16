@@ -22,6 +22,10 @@ This is **not productionized** yet — it runs the web+api in dev mode.
 # From repo root
 export JWT_SECRET='dev_change_me'
 export ADMIN_EMAIL='pete@nexgenstemschool.com.au'
+export ADMIN_BOOTSTRAP_KEY='dev_only_admin_key'
+export FEEDBACK_EMAIL_ADDRESS='feedback@example.com'
+export SMTP_URL='smtp://user:pass@mail.example.com:587'
+export SMTP_FROM='Hooked on React <no-reply@example.com>'
 
 docker compose up --build
 ```
@@ -74,3 +78,5 @@ pnpm -C apps/api run migrate:attempt-topics
 ## Notes
 - Question bank is stored as JSON and served from the API; user sessions and attempts live in MongoDB.
 - The adaptive logic is intentionally simple (ELO-ish). Improve it by tracking per-topic item response performance.
+- The first admin account now requires both `ADMIN_EMAIL` and `ADMIN_BOOTSTRAP_KEY` during registration; matching the email alone is not enough.
+- The feedback panel posts to the API and sends email to `FEEDBACK_EMAIL_ADDRESS` via `SMTP_URL`; set `SMTP_FROM` if your mail provider requires a specific sender.

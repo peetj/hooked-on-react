@@ -8,9 +8,20 @@ const ServedQuestionSchema = new mongoose.Schema(
     nonce: { type: String, required: true, unique: true, index: true },
     issuedAt: { type: Date, required: true },
     expiresAt: { type: Date, required: true, index: true },
+    pausedAt: { type: Date, required: false },
+    remainingTimeSec: { type: Number, required: false },
     usedAt: { type: Date, required: false }
   },
   { versionKey: false }
+);
+
+// Only allow one active unanswered question per user session.
+ServedQuestionSchema.index(
+  { sessionId: 1, userId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { usedAt: { $exists: false } }
+  }
 );
 
 export type ServedQuestionDoc = InferSchemaType<typeof ServedQuestionSchema> & { _id: mongoose.Types.ObjectId };
